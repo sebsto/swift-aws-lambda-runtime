@@ -1,9 +1,6 @@
 > [!IMPORTANT]
 > The documentation included here refers to the Swift AWS Lambda Runtime v2 (code from the main branch). If you're developing for the runtime v1.x, check this [readme](https://github.com/swift-server/swift-aws-lambda-runtime/blob/v1/readme.md) instead.
 
-> [!WARNING]
-> The Swift AWS Runtime v2 is work in progress. We will add more documentation and code examples over time.
-
 This guide contains the follwoing sections:
 
 - [The Swift AWS Lambda Runtime](#the-swift-aws-lambda-runtime)
@@ -40,7 +37,9 @@ Swift AWS Lambda Runtime was designed to make building Lambda functions in Swift
 
 ## Getting started
 
-To get started, read [the Swift AWS Lambda runtime v1 tutorial](https://swiftpackageindex.com/swift-server/swift-aws-lambda-runtime/1.0.0-alpha.3/tutorials/table-of-content). It provides developers with detailed step-by-step instructions to develop, build, and deploy a Lambda function.
+To get started, read [the Swift AWS Lambda runtime tutorial](https://swiftpackageindex.com/swift-server/swift-aws-lambda-runtime/main/tutorials/table-of-content). It provides developers with detailed step-by-step instructions to develop, build, and deploy a Lambda function.
+
+We also wrote a comprehensive [deployment guide](https://swiftpackageindex.com/swift-server/swift-aws-lambda-runtime/main/documentation/awslambdaruntimecore/deployment).
 
 Or, if you're impatient to start with runtime v2, try these six steps:
 
@@ -156,11 +155,11 @@ The `--architectures` flag is only required when you build the binary on an Appl
 Be sure to replace <YOUR_ACCOUNT_ID> with your actual AWS account ID (for example: 012345678901).
 
 > [!IMPORTANT] 
-> Before starting, you need the `lambda_basic_execution` IAM role in your AWS account.
+> Before creating a function, you need to have a `lambda_basic_execution` IAM role in your AWS account.
 >
 > You can create this role in two ways:
 > 1. Using AWS Console
-> 2. Running the commands in the `create_lambda_execution_role()` function in `Examples/_MyFirstFunction/create_iam_role.sh`
+> 2. Running the commands in the `create_lambda_execution_role()` function in [`Examples/_MyFirstFunction/create_iam_role.sh`](https://github.com/swift-server/swift-aws-lambda-runtime/blob/8dff649920ab0c66bb039d15ae48d9d5764db71a/Examples/_MyFirstFunction/create_and_deploy_function.sh#L40C1-L40C31)
 
 6. Invoke your Lambda function
 
@@ -280,7 +279,7 @@ try await runtime.run()
 
 ### Integration with Swift Service LifeCycle
 
-tbd + link to docc
+Support for [Swift Service Lifecycle](https://github.com/swift-server/swift-service-lifecycle) is currently being implemented. You can follow https://github.com/swift-server/swift-aws-lambda-runtime/issues/374 for more details and teh current status. Your contributions are welcome.
 
 ### Use Lambda Background Tasks
 
