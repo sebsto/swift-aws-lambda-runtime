@@ -34,3 +34,6 @@ Package.resolved
 *.yml
 **/.npmignore
 **/*.json
+docs/*
+.unacceptablelanguageignore
+.nojekyll
