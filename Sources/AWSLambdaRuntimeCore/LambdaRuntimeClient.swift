@@ -339,9 +339,9 @@ final actor LambdaRuntimeClient: LambdaRuntimeClientProtocol {
             case .connecting(let array):
                 self.connectionState = .connected(channel, handler)
                 defer {
-                    for continuation in array {
-                        continuation.resume(returning: handler)
-                    }
+                    // for continuation in array {
+                    //     continuation.resume(returning: handler)
+                    // }
                 }
                 return handler
             }
@@ -353,9 +353,9 @@ final actor LambdaRuntimeClient: LambdaRuntimeClientProtocol {
             case .connecting(let array):
                 self.connectionState = .disconnected
                 defer {
-                    for continuation in array {
-                        continuation.resume(throwing: error)
-                    }
+                    // for continuation in array {
+                    //     continuation.resume(throwing: error)
+                    // }
                 }
                 throw error
             }

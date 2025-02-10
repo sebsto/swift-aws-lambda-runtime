@@ -383,8 +383,13 @@ private struct LambdaHttpServer {
                 // wait for an element to be enqueued
                 return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<T, any Error>) in
                     // store the continuation for later, when an element is enqueued
+                    //FIXME: when a continuation is already stored, we must call continuation.resume(throwing: error)
                     self._continuation.withLock {
+                        if $0 != nil {
+                            $0!.resume(throwing: LocalServerError.nextAlreadyCalled)
+                        } 
                         $0 = continuation
+                        
                     }
                 }
             }
@@ -429,5 +434,9 @@ private struct LambdaHttpServer {
             return LocalServerResponse(id: self.requestId, status: status, headers: headers, body: self.request)
         }
     }
+}
+enum LocalServerError: Error {
+    case nextAlreadyCalled
+
 }
 #endif

@@ -36,8 +36,7 @@ let package = Package(
                 .product(name: "NIOCore", package: "swift-nio"),
                 .product(name: "NIOConcurrencyHelpers", package: "swift-nio"),
                 .product(name: "NIOPosix", package: "swift-nio"),
-            ],
-            swiftSettings: [.swiftLanguageMode(.v5)]
+            ]
         ),
         .plugin(
             name: "AWSLambdaPackager",
@@ -94,6 +93,27 @@ let package = Package(
                 .product(name: "NIOCore", package: "swift-nio"),
                 .product(name: "NIOPosix", package: "swift-nio"),
             ]
+        ),
+        // for development - do not merge
+        .executableTarget(
+            name: "HTTPClient",
+            dependencies: [
+                .product(name: "Logging", package: "swift-log"),
+                .product(name: "NIOHTTP1", package: "swift-nio"),
+                .product(name: "NIOCore", package: "swift-nio"),
+                .product(name: "NIOPosix", package: "swift-nio"),
+                .product(name: "NIOConcurrencyHelpers", package: "swift-nio"),
+            ],
+            path: "Sources/TempClient"
+        ),
+        .executableTarget(
+            name: "HTTPServer",
+            dependencies: [
+                .product(name: "Logging", package: "swift-log"),
+                .product(name: "NIOHTTP1", package: "swift-nio"),
+                .product(name: "NIOCore", package: "swift-nio"),
+            ],
+            path: "Sources/TempServer"
         ),
     ]
 )
