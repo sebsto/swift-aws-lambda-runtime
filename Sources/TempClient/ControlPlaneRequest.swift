@@ -1,4 +1,7 @@
+import NIOCore
 import NIOHTTP1
+
+package typealias Invocation = (ByteBuffer?, InvocationMetadata)
 
 package struct InvocationMetadata: Hashable {
     package let requestID: String

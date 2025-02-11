@@ -26,7 +26,7 @@ struct Test {
             ]
         )
 
-        var task: Task<String, any Error>!
+        var task: Task<Void, any Error>!
         var client: HTTPClient!
 
         client = HTTPClient(config: config)  //, continuation: continuation)
@@ -49,21 +49,21 @@ struct Test {
             }
         }
 
-        try await Task.sleep(nanoseconds: 500_000_000)
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+        // try await Task.sleep(nanoseconds: 500_000_000)
+        // try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
 
-            // 30% chance of cancellation
-            print("With checked continuation")
-            if Double.random(in: 0...1) < 0.5 {
-                print("initiating a cancel")
-                task.cancel()
-                continuation.resume()
-            } else {
-                print("initiating a gracefull shutdown")
-                client.syncShutdownGracefully(continuation: continuation)
-            }
-        }
-        try await Task.sleep(nanoseconds: 500_000_000)
+        //     // 30% chance of cancellation
+        //     print("With checked continuation")
+        //     if Double.random(in: 0...1) < 0.5 {
+        //         print("initiating a cancel")
+        //         task.cancel()
+        //         continuation.resume()
+        //     } else {
+        //         print("initiating a gracefull shutdown")
+        //         client.syncShutdownGracefully(continuation: continuation)
+        //     }
+        // }
+        // try await Task.sleep(nanoseconds: 500_000_000)
         print("done")
 
     }

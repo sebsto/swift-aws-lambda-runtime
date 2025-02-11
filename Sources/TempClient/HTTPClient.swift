@@ -28,12 +28,11 @@ enum HTTPClientError: Error {
 }
 
 /// A simple generic HTTP Client
-/// It continuously sends a request and waits for a response until it is cancelled or a gracefull shutdown is requested
+/// It continuously sends a request and waits for a response until task is cancelled
 struct HTTPClient {
 
     private let config: Configuration
     private let clientBoostrap: ClientBootstrap
-    private let gracefullShutdown = SharedFlag()
 
     init(config: Configuration) {
         self.config = config
@@ -69,80 +68,38 @@ struct HTTPClient {
         _ path: String,
         method: HTTPMethod = .GET,
         headers: HTTPHeaders = HTTPHeaders()
-    ) async throws -> String {
+    ) async throws -> Void {
         let clientChannel = try await self.createClientChannel()
-        let result = try await clientChannel.executeThenClose { inbound, outbound in
+        try await clientChannel.executeThenClose { inbound, outbound in
 
             do {
+
                 var inboundIterator = inbound.makeAsyncIterator()
 
-                var run = true
                 // loop until the task is cancelled
                 // task can be cancelled when the parent task is cancelled or when the gracefullShutdown is requested
-                while run  {
+                while true {
 
                     // is the task cancelled ?
                     try Task.checkCancellation()
 
-                    // did we receive a gracefull shutdown signal ?
-                    if let continuation = self.gracefullShutdown.get() {
-                        run = false
-                        print("gracefully shutdown")
-                        continuation.resume()
-                    
-                    } else {
+                    // send a request and wait for the response
+                    print("sending \(path)")
+                    try await outbound.get(path)
 
-                        // send a request and wait for the response
-                        print("sending \(path)")
-                        try await outbound.get(path)
-                        //FIXME: how to gracefull shutdown when waiting for a response?
-                        let response = try await inboundIterator.readFullResponse()
-                        //FIXME : create an async sequence with the responses ?
-                        print(response)
-                    }
+                    let response = try await inboundIterator.readFullResponse()
+                    //TODO: empile response in a shared tsructured + iterator
+
                 }
 
             } catch is CancellationError {
                 // do not let CancellationError propagate, exit the loop and let NIO close the channel
                 print("Cancelled")
-            } 
-            return ""
+            }
+            return 
         }
-        // anything below this line might not be executed in case of Task cancellation or Gracefull shutdown
+        // anything below this line might not be executed in case of Task cancellation
         print("exited executeThenClose")
-        return result
-
-    }
-
-    func syncShutdownGracefully(continuation: CheckedContinuation<Void, any Error>) {
-        self.gracefullShutdown.toggle(continuation: continuation)
-    }
-}
-
-private final class SharedFlag: Sendable {
-    private let flag = Mutex<CheckedContinuation<Void, any Error>?>(nil)
-
-    func get() -> CheckedContinuation<Void, any Error>? {
-        flag.withLock {
-            if let continuation = $0 {
-                $0 = nil
-                return continuation
-            } else {
-                return nil
-            }
-        }
-    }
-    func toggle(continuation: CheckedContinuation<Void, any Error>)  {
-        flag.withLock {
-            if let continuation = $0 {
-                // should not happen, but play it nice and resume the previous continuation
-                continuation.resume()
-                $0 = nil
-                fatalError("Unexpected state")
-            } else {
-                $0 = continuation
-            }
-        }
     }
 }
 
