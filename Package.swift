@@ -103,6 +103,7 @@ let package = Package(
                 .product(name: "NIOCore", package: "swift-nio"),
                 .product(name: "NIOPosix", package: "swift-nio"),
                 .product(name: "NIOConcurrencyHelpers", package: "swift-nio"),
+                .byName(name: "AWSLambdaRuntimeCore")
             ],
             path: "Sources/TempClient"
         ),
@@ -112,6 +113,7 @@ let package = Package(
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "NIOHTTP1", package: "swift-nio"),
                 .product(name: "NIOCore", package: "swift-nio"),
+                .byName(name: "AWSLambdaRuntimeCore")
             ],
             path: "Sources/TempServer"
         ),

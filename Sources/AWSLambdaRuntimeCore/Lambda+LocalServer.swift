@@ -19,7 +19,6 @@ import NIOConcurrencyHelpers
 import NIOCore
 import NIOHTTP1
 import NIOPosix
-import Synchronization
 
 // This functionality is designed for local testing hence being a #if DEBUG flag.
 
@@ -91,6 +90,8 @@ private struct LambdaHttpServer {
     private let port: Int
     private let invocationEndpoint: String
 
+    // the pool of messages receives for invocation and response.
+    // infinite pool means the iterator never yield control and infinitively waits for a next message to process
     private let invocationPool = Pool<LocalServerInvocation>()
     private let responsePool = Pool<LocalServerResponse>()
 
@@ -343,63 +344,6 @@ private struct LambdaHttpServer {
         try await outbound.write(HTTPServerResponsePart.end(nil))
     }
 
-    /// A shared data structure to store the current invocation or response requests and the continuation objects.
-    /// This data structure is shared between instances of the HTTPHandler
-    /// (one instance to serve requests from the Lambda function and one instance to serve requests from the client invoking the lambda function).
-    private final class Pool<T>: AsyncSequence, AsyncIteratorProtocol, Sendable where T: Sendable {
-        typealias Element = T
-
-        private let _buffer = Mutex<CircularBuffer<T>>(.init())
-        private let _continuation = Mutex<CheckedContinuation<T, any Error>?>(nil)
-
-        /// retrieve the first element from the buffer
-        public func popFirst() async -> T? {
-            self._buffer.withLock { $0.popFirst() }
-        }
-
-        /// enqueue an element, or give it back immediately to the iterator if it is waiting for an element
-        public func push(_ invocation: T) async {
-            // if the iterator is waiting for an element, give it to it
-            // otherwise, enqueue the element
-            if let continuation = self._continuation.withLock({ $0 }) {
-                self._continuation.withLock { $0 = nil }
-                continuation.resume(returning: invocation)
-            } else {
-                self._buffer.withLock { $0.append(invocation) }
-            }
-        }
-
-        func next() async throws -> T? {
-
-            // exit the async for loop if the task is cancelled
-            guard !Task.isCancelled else {
-                return nil
-            }
-
-            if let element = await self.popFirst() {
-                return element
-            } else {
-                // we can't return nil if there is nothing to dequeue otherwise the async for loop will stop
-                // wait for an element to be enqueued
-                return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<T, any Error>) in
-                    // store the continuation for later, when an element is enqueued
-                    //FIXME: when a continuation is already stored, we must call continuation.resume(throwing: error)
-                    self._continuation.withLock {
-                        if $0 != nil {
-                            $0!.resume(throwing: LocalServerError.nextAlreadyCalled)
-                        } 
-                        $0 = continuation
-                        
-                    }
-                }
-            }
-        }
-
-        func makeAsyncIterator() -> Pool {
-            self
-        }
-    }
-
     private struct LocalServerResponse: Sendable {
         let requestId: String?
         let status: HTTPResponseStatus
@@ -434,9 +378,5 @@ private struct LambdaHttpServer {
             return LocalServerResponse(id: self.requestId, status: status, headers: headers, body: self.request)
         }
     }
-}
-enum LocalServerError: Error {
-    case nextAlreadyCalled
-
 }
 #endif

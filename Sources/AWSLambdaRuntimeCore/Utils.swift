@@ -15,25 +15,27 @@
 import Dispatch
 import NIOPosix
 
-enum Consts {
-    static let apiPrefix = "/2018-06-01"
-    static let invocationURLPrefix = "\(apiPrefix)/runtime/invocation"
-    static let getNextInvocationURLSuffix = "/next"
-    static let postResponseURLSuffix = "/response"
-    static let postErrorURLSuffix = "/error"
-    static let postInitErrorURL = "\(apiPrefix)/runtime/init/error"
-    static let functionError = "FunctionError"
-    static let initializationError = "InitializationError"
+//TODO: switch back to package
+public enum Consts {
+    public static let apiPrefix = "/2018-06-01"
+    public static let invocationURLPrefix = "\(apiPrefix)/runtime/invocation"
+    public static let getNextInvocationURLSuffix = "/next"
+    public static let postResponseURLSuffix = "/response"
+    public static let postErrorURLSuffix = "/error"
+    public static let postInitErrorURL = "\(apiPrefix)/runtime/init/error"
+    public static let functionError = "FunctionError"
+    public static let initializationError = "InitializationError"
+    public static let userAgent = "swift-aws-lambda-runtime/v2.0.0"
 }
 
 /// AWS Lambda HTTP Headers, used to populate the `LambdaContext` object.
-enum AmazonHeaders {
-    static let requestID = "Lambda-Runtime-Aws-Request-Id"
-    static let traceID = "Lambda-Runtime-Trace-Id"
-    static let clientContext = "X-Amz-Client-Context"
-    static let cognitoIdentity = "X-Amz-Cognito-Identity"
-    static let deadline = "Lambda-Runtime-Deadline-Ms"
-    static let invokedFunctionARN = "Lambda-Runtime-Invoked-Function-Arn"
+public enum AmazonHeaders {
+    public static let requestID = "Lambda-Runtime-Aws-Request-Id"
+    public static let traceID = "Lambda-Runtime-Trace-Id"
+    public static let clientContext = "X-Amz-Client-Context"
+    public static let cognitoIdentity = "X-Amz-Cognito-Identity"
+    public static let deadline = "Lambda-Runtime-Deadline-Ms"
+    public static let invokedFunctionARN = "Lambda-Runtime-Invoked-Function-Arn"
 }
 
 /// Helper function to trap signals
@@ -58,7 +60,8 @@ enum Signal: Int32 {
     case TERM = 15
 }
 
-extension DispatchWallTime {
+//TODO: switch to internal
+public extension DispatchWallTime {
     init(millisSinceEpoch: Int64) {
         let nanoSinceEpoch = UInt64(millisSinceEpoch) * 1_000_000
         let seconds = UInt64(nanoSinceEpoch / 1_000_000_000)
@@ -105,7 +108,8 @@ extension String {
     }
 }
 
-extension AmazonHeaders {
+//TODO: switch to internal 
+public extension AmazonHeaders {
     /// Generates (X-Ray) trace ID.
     /// # Trace ID Format
     /// A `trace_id` consists of three numbers separated by hyphens.

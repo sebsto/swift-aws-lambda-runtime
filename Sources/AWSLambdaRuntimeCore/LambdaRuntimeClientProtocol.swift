@@ -26,13 +26,3 @@ package protocol LambdaRuntimeClientProtocol {
 
     func nextInvocation() async throws -> (Invocation, Writer)
 }
-
-package struct Invocation {
-    package var metadata: InvocationMetadata
-    package var event: ByteBuffer
-
-    package init(metadata: InvocationMetadata, event: ByteBuffer) {
-        self.metadata = metadata
-        self.event = event
-    }
-}

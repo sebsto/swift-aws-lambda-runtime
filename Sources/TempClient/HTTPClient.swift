@@ -17,25 +17,31 @@ import NIOCore
 import NIOHTTP1
 import NIOPosix
 import Synchronization
-
-struct Configuration {
-    var ip: String
-    var port: Int
-}
+import AWSLambdaRuntimeCore
 
 enum HTTPClientError: Error {
-    case malformedResponse, unexpectedEndOfStream
+    case malformedResponse
+    case unexpectedEndOfStream
 }
 
-/// A simple generic HTTP Client
-/// It continuously sends a request and waits for a response until task is cancelled
+/// A simple, Swift Concurrency-compliant Lambda HTTP Client
+///
+/// It continuously sends a 'GET /next' request to the Lamnbda control plane and waits for a response until the Task is cancelled.
+/// The lambda control plance responds with Lambda invocation events. Invocation events are enqueued in a shared Pool data structure that is shared with the caller.
+/// Once put in the queue, the client waits for the caller to process the invocation event (the caller invokes the body of the Lambda function).
+/// When the callers tells us we can continue, we send the response to the Lambda service control plane with a `POST /response`.
 struct HTTPClient {
 
-    private let config: Configuration
+    private let ip: String 
+    private let port: Int
     private let clientBoostrap: ClientBootstrap
 
-    init(config: Configuration) {
-        self.config = config
+    private let invocationsPool: Pool<Invocation>
+
+    init(ip: String, port: Int, invocations: Pool<Invocation>) {
+        self.ip = ip
+        self.port = port
+        self.invocationsPool = invocations
         self.clientBoostrap = ClientBootstrap(
             group: NIOSingletons.posixEventLoopGroup
         )
@@ -49,8 +55,8 @@ struct HTTPClient {
 
     private func createClientChannel() async throws -> NIOAsyncChannel<HTTPClientResponsePart, HTTPClientRequestPart> {
         try await clientBoostrap.connect(
-            host: self.config.ip,
-            port: self.config.port
+            host: self.ip,
+            port: self.port
         )
         .flatMapThrowing { channel in
             try NIOAsyncChannel(
@@ -79,28 +85,63 @@ struct HTTPClient {
                 // loop until the task is cancelled
                 // task can be cancelled when the parent task is cancelled or when the gracefullShutdown is requested
                 while true {
-
                     // is the task cancelled ?
                     try Task.checkCancellation()
 
                     // send a request and wait for the response
-                    print("sending \(path)")
-                    try await outbound.get(path)
+                    let nextPath = Consts.getNextInvocationURLSuffix
+                    print("sending \(nextPath)")
+                    try await outbound.get(nextPath)
 
-                    let response = try await inboundIterator.readFullResponse()
-                    //TODO: empile response in a shared tsructured + iterator
+                    // wait for next invocation
+                    print("Waiting for next invocation")
+                    let (headers, body) = try await inboundIterator.readFullResponse()
+                    print("Received next invocation")
+                    print(headers)
+                    print(body)
+                    let metadata: InvocationMetadata = try InvocationMetadata(headers: headers) 
+
+                    let response = await withCheckedContinuation { (continuation: CheckedContinuation<ByteBuffer, Never>)  in
+
+                        // invocation received, wrap it in an Invocation object
+                        let invocation = Invocation(metadata: metadata, event: body, continuation: continuation)
+
+                        // enqueue invocation in a shared structured on which our caller can iterate
+                        self.invocationsPool.push(invocation)
+
+                        // the consumer of the invocation will call continuation.resume()
+                    }
+                    print("response received from lambda : \(String(buffer: response))")
+
+                    // now we have a response
+                    print("sending response POST /response")
+                    try await outbound.post(Consts.postResponseURLSuffix, body: response)
+
+                    // read the server response from our response
+                    let (respHeaders, respBody) = try await inboundIterator.readFullResponse()
+                    print(respHeaders)
+                    print(respBody)
+                    //TODO: verify response is OK or accepted
 
                 }
 
             } catch is CancellationError {
                 // do not let CancellationError propagate, exit the loop and let NIO close the channel
-                print("Cancelled")
+                print("Client Task Cancelled")
+            } catch let error as HTTPClientError {
+                print("HTTPClientError: \(error)")
+                // throw error
             }
+
             return 
         }
         // anything below this line might not be executed in case of Task cancellation
-        print("exited executeThenClose")
+        print("server closed the connection - exited executeThenClose")
     }
+
+    // func pushInvocation(_ invocation: Invocation, complete) {
+    //     self.invocationsPool.push(invocation)
+    // }
 }
 
 extension NIOAsyncChannelInboundStream<HTTPClientResponsePart>.AsyncIterator {
@@ -110,7 +151,7 @@ extension NIOAsyncChannelInboundStream<HTTPClientResponsePart>.AsyncIterator {
         }
         return part
     }
-    mutating func readFullResponse() async throws -> String {
+    mutating func readFullResponse() async throws -> (HTTPHeaders, ByteBuffer) {
         var headers: HTTPHeaders? = nil
         var body = ByteBuffer()
         while let part = try await self._next() {
@@ -120,10 +161,10 @@ extension NIOAsyncChannelInboundStream<HTTPClientResponsePart>.AsyncIterator {
             case .body(var buf):
                 body.writeBuffer(&buf)
             case .end(_):
-                guard headers != nil else {
+                guard let headers = headers else {
                     throw HTTPClientError.malformedResponse
                 }
-                return String(buffer: body)
+                return (headers, body)
             }
         }
         // server closed the connection

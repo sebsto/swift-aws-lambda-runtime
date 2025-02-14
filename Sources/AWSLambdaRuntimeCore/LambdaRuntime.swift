@@ -68,38 +68,41 @@ public final class LambdaRuntime<Handler>: @unchecked Sendable where Handler: St
             let ip = String(ipAndPort[0])
             guard let port = Int(ipAndPort[1]) else { throw LambdaRuntimeError(code: .invalidPort) }
 
-            try await LambdaRuntimeClient.withRuntimeClient(
-                configuration: .init(ip: ip, port: port),
-                eventLoop: self.eventLoop,
-                logger: self.logger
-            ) { runtimeClient in
-                try await Lambda.runLoop(
-                    runtimeClient: runtimeClient,
-                    handler: handler,
-                    logger: self.logger
-                )
-            }
+            //TODO: remove comments 
+            // try await LambdaRuntimeClient.withRuntimeClient(
+            //     configuration: .init(ip: ip, port: port),
+            //     eventLoop: self.eventLoop,
+            //     logger: self.logger
+            // ) { runtimeClient in
+            //     try await Lambda.runLoop(
+            //         runtimeClient: runtimeClient,
+            //         handler: handler,
+            //         logger: self.logger
+            //     )
+            // }
 
         } else {
 
             #if DEBUG
+            //TODO: remove comments
+            
             // we're not running on Lambda and we're compiled in DEBUG mode,
             // let's start a local server for testing
-            try await Lambda.withLocalServer(invocationEndpoint: Lambda.env("LOCAL_LAMBDA_SERVER_INVOCATION_ENDPOINT"))
-            {
+            // try await Lambda.withLocalServer(invocationEndpoint: Lambda.env("LOCAL_LAMBDA_SERVER_INVOCATION_ENDPOINT"))
+            // {
 
-                try await LambdaRuntimeClient.withRuntimeClient(
-                    configuration: .init(ip: "127.0.0.1", port: 7000),
-                    eventLoop: self.eventLoop,
-                    logger: self.logger
-                ) { runtimeClient in
-                    try await Lambda.runLoop(
-                        runtimeClient: runtimeClient,
-                        handler: handler,
-                        logger: self.logger
-                    )
-                }
-            }
+            //     try await LambdaRuntimeClient.withRuntimeClient(
+            //         configuration: .init(ip: "127.0.0.1", port: 7000),
+            //         eventLoop: self.eventLoop,
+            //         logger: self.logger
+            //     ) { runtimeClient in
+            //         try await Lambda.runLoop(
+            //             runtimeClient: runtimeClient,
+            //             handler: handler,
+            //             logger: self.logger
+            //         )
+            //     }
+            // }
             #else
             // in release mode, we can't start a local server because the local server code is not compiled.
             throw LambdaRuntimeError(code: .missingLambdaRuntimeAPIEnvironmentVariable)

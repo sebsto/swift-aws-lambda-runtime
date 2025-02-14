@@ -1,5 +1,8 @@
 import NIO
 import NIOHTTP1
+import AWSLambdaRuntimeCore
+import Dispatch
+
 
 private final class HTTPHandler: ChannelInboundHandler, Sendable {
     typealias InboundIn = HTTPServerRequestPart
@@ -11,13 +14,33 @@ private final class HTTPHandler: ChannelInboundHandler, Sendable {
         switch reqPart {
         case .head(let request):
             if request.method == .GET && request.uri == "/next" {
-                let responseHead = HTTPResponseHead(version: request.version, status: .ok)
+                print("Received a GET request")
+                let headers = HTTPHeaders([
+                    (AmazonHeaders.requestID, "123"),
+                    (
+                        AmazonHeaders.invokedFunctionARN,
+                        "arn:aws:lambda:us-east-1:\(Int16.random(in: Int16.min ... Int16.max)):function:custom-runtime"
+                    ),
+                    (AmazonHeaders.traceID, "Root=\(AmazonHeaders.generateXRayTraceID());Sampled=1"),
+                    (AmazonHeaders.deadline, "\(DispatchWallTime.distantFuture.millisSinceEpoch)"),
+                    ])
+                let responseHead = HTTPResponseHead(version: request.version, status: .ok, headers: headers)
                 context.write(self.wrapOutboundOut(.head(responseHead)), promise: nil)
 
                 let responseBody = HTTPServerResponsePart.body(.byteBuffer(context.channel.allocator.buffer(string: "{\"message\": \"Hello, world!\"}")))
                 context.write(self.wrapOutboundOut(responseBody), promise: nil)
 
                 context.writeAndFlush(self.wrapOutboundOut(.end(nil)), promise: nil)
+                // close the connection to test client behaviour
+                // context.close(promise: nil)
+            }
+            if request.method == .POST && request.uri == "/response" {
+                print("Received a POST request")
+                let responseHead = HTTPResponseHead(version: request.version, status: .accepted)
+                context.write(self.wrapOutboundOut(.head(responseHead)), promise: nil)
+
+                context.writeAndFlush(self.wrapOutboundOut(.end(nil)), promise: nil)
+                // close the connection to test client behaviour
                 // context.close(promise: nil)
             }
         case .body:

@@ -15,28 +15,41 @@
 import NIOCore
 import NIOHTTP1
 
-enum ControlPlaneRequest: Hashable {
-    case next
-    case invocationResponse(String, ByteBuffer?)
-    case invocationError(String, ErrorResponse)
-    case initializationError(ErrorResponse)
+// enum ControlPlaneRequest: Hashable {
+//     case next
+//     case invocationResponse(String, ByteBuffer?)
+//     case invocationError(String, ErrorResponse)
+//     case initializationError(ErrorResponse)
+// }
+
+// enum ControlPlaneResponse: Hashable {
+//     case next(InvocationMetadata, ByteBuffer)
+//     case accepted
+//     case error(ErrorResponse)
+// }
+
+//TODO: temp switch to public from package
+public struct Invocation: Sendable {
+    public let metadata: InvocationMetadata
+    public let event: ByteBuffer
+    public let continuation: CheckedContinuation<ByteBuffer, Never>
+
+    public init(metadata: InvocationMetadata, event: ByteBuffer, continuation: CheckedContinuation<ByteBuffer, Never>) {
+        self.metadata = metadata
+        self.event = event
+        self.continuation = continuation
+    }
 }
+//TODO: switch back to package
+public struct InvocationMetadata: Sendable, Hashable {
+    public let requestID: String
+    public let deadlineInMillisSinceEpoch: Int64
+    public let invokedFunctionARN: String
+    public let traceID: String
+    public let clientContext: String?
+    public let cognitoIdentity: String?
 
-enum ControlPlaneResponse: Hashable {
-    case next(InvocationMetadata, ByteBuffer)
-    case accepted
-    case error(ErrorResponse)
-}
-
-package struct InvocationMetadata: Hashable {
-    package let requestID: String
-    package let deadlineInMillisSinceEpoch: Int64
-    package let invokedFunctionARN: String
-    package let traceID: String
-    package let clientContext: String?
-    package let cognitoIdentity: String?
-
-    package init(headers: HTTPHeaders) throws(LambdaRuntimeError) {
+    public init(headers: HTTPHeaders) throws(LambdaRuntimeError) {
         guard let requestID = headers.first(name: AmazonHeaders.requestID), !requestID.isEmpty else {
             throw LambdaRuntimeError(code: .nextInvocationMissingHeaderRequestID)
         }
