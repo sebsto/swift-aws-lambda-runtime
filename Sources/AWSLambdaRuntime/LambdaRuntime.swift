@@ -31,6 +31,8 @@ public enum LambdaRuntimeError: Error {
     case moreThanOneLambdaRuntimeInstance
 }
 public final class LambdaRuntime<Handler>: Sendable where Handler: StreamingLambdaHandler {
+    // using a Mutex here crashes the 6.0 compiler
+    // https://github.com/swiftlang/swift/issues/80036
     let handlerMutex: Mutex<Handler?>
     let logger: Logger
     let eventLoop: EventLoop
