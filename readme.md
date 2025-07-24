@@ -1,10 +1,7 @@
 > [!IMPORTANT]
 > The documentation included here refers to the Swift AWS Lambda Runtime v2 (code from the main branch). If you're developing for the runtime v1.x, check this [readme](https://github.com/swift-server/swift-aws-lambda-runtime/blob/v1/readme.md) instead.
 
-> [!WARNING]
-> The Swift AWS Runtime v2 is work in progress. We will add more documentation and code examples over time.
-
-This guide contains the follwoing sections:
+This guide contains the following sections:
 
 - [The Swift AWS Lambda Runtime](#the-swift-aws-lambda-runtime)
 - [Pre-requisites](#pre-requisites)
@@ -40,7 +37,9 @@ Swift AWS Lambda Runtime was designed to make building Lambda functions in Swift
 
 ## Getting started
 
-To get started, read [the Swift AWS Lambda runtime v1 tutorial](https://swiftpackageindex.com/swift-server/swift-aws-lambda-runtime/1.0.0-alpha.3/tutorials/table-of-content). It provides developers with detailed step-by-step instructions to develop, build, and deploy a Lambda function.
+To get started, read [the Swift AWS Lambda runtime tutorial](https://swiftpackageindex.com/swift-server/swift-aws-lambda-runtime/main/tutorials/table-of-content). It provides developers with detailed step-by-step instructions to develop, build, and deploy a Lambda function.
+
+We also wrote a comprehensive [deployment guide](https://swiftpackageindex.com/swift-server/swift-aws-lambda-runtime/main/documentation/awslambdaruntime/deployment).
 
 Or, if you're impatient to start with runtime v2, try these six steps:
 
@@ -156,11 +155,11 @@ The `--architectures` flag is only required when you build the binary on an Appl
 Be sure to replace <YOUR_ACCOUNT_ID> with your actual AWS account ID (for example: 012345678901).
 
 > [!IMPORTANT] 
-> Before starting, you need the `lambda_basic_execution` IAM role in your AWS account.
+> Before creating a function, you need to have a `lambda_basic_execution` IAM role in your AWS account.
 >
 > You can create this role in two ways:
 > 1. Using AWS Console
-> 2. Running the commands in the `create_lambda_execution_role()` function in `Examples/_MyFirstFunction/create_iam_role.sh`
+> 2. Running the commands in the `create_lambda_execution_role()` function in [`Examples/_MyFirstFunction/create_iam_role.sh`](https://github.com/swift-server/swift-aws-lambda-runtime/blob/8dff649920ab0c66bb039d15ae48d9d5764db71a/Examples/_MyFirstFunction/create_and_deploy_function.sh#L40C1-L40C31)
 
 6. Invoke your Lambda function
 
@@ -226,6 +225,8 @@ Streaming responses incurs a cost. For more information, see [AWS Lambda Pricing
 
 You can stream responses through [Lambda function URLs](https://docs.aws.amazon.com/lambda/latest/dg/urls-configuration.html), the AWS SDK, or using the Lambda [InvokeWithResponseStream](https://docs.aws.amazon.com/lambda/latest/dg/API_InvokeWithResponseStream.html) API. In this example, we create an authenticated Lambda function URL.
 
+#### Simple Streaming Example
+
 Here is an example of a minimal function that streams 10 numbers with an interval of one second for each number.
 
 ```swift
@@ -253,7 +254,101 @@ let runtime = LambdaRuntime.init(handler: SendNumbersWithPause())
 try await runtime.run()
 ```
 
+#### Streaming with HTTP Headers and Status Code
+
+When streaming responses, you can also set HTTP status codes and headers before sending the response body. This is particularly useful when your Lambda function is invoked through API Gateway or Lambda function URLs, allowing you to control the HTTP response metadata.
+
+```swift
+import AWSLambdaRuntime
+import NIOCore
+
+struct StreamingWithHeaders: StreamingLambdaHandler {
+    func handle(
+        _ event: ByteBuffer,
+        responseWriter: some LambdaResponseStreamWriter,
+        context: LambdaContext
+    ) async throws {
+        // Set HTTP status code and headers before streaming the body
+        let response = StreamingLambdaStatusAndHeadersResponse(
+            statusCode: 200,
+            headers: [
+                "Content-Type": "text/plain",
+                "Cache-Control": "no-cache"
+            ]
+        )
+        try await responseWriter.writeStatusAndHeaders(response)
+        
+        // Now stream the response body
+        for i in 1...5 {
+            try await responseWriter.write(ByteBuffer(string: "Chunk \(i)\n"))
+            try await Task.sleep(for: .milliseconds(500))
+        }
+        
+        try await responseWriter.finish()
+    }
+}
+
+let runtime = LambdaRuntime.init(handler: StreamingWithHeaders())
+try await runtime.run()
+```
+
+The `writeStatusAndHeaders` method allows you to:
+- Set HTTP status codes (200, 404, 500, etc.)
+- Add custom HTTP headers for content type, caching, CORS, etc.
+- Control response metadata before streaming begins
+- Maintain compatibility with API Gateway and Lambda function URLs
+
 You can learn how to deploy and invoke this function in [the streaming example README file](Examples/Streaming/README.md).
+
+### Lambda Streaming Response with JSON Input
+
+The Swift AWS Lambda Runtime also provides a convenient interface that combines the benefits of JSON input decoding with response streaming capabilities. This is ideal when you want to receive strongly-typed JSON events while maintaining the ability to stream responses and execute background work.
+
+Here is an example of a function that receives a JSON event and streams multiple responses:
+
+```swift
+import AWSLambdaRuntime
+import NIOCore
+
+// Define your input event structure
+struct StreamingRequest: Decodable {
+    let count: Int
+    let message: String
+    let delayMs: Int?
+}
+
+// Use the new streaming handler with JSON decoding
+let runtime = LambdaRuntime { (event: StreamingRequest, responseWriter, context: LambdaContext) in
+    context.logger.info("Received request to send \(event.count) messages")
+    
+    // Stream the messages
+    for i in 1...event.count {
+        let response = "Message \(i)/\(event.count): \(event.message)\n"
+        try await responseWriter.write(ByteBuffer(string: response))
+        
+        // Optional delay between messages
+        if let delay = event.delayMs, delay > 0 {
+            try await Task.sleep(for: .milliseconds(delay))
+        }
+    }
+    
+    // Finish the stream
+    try await responseWriter.finish()
+    
+    // Optional: Execute background work after response is sent
+    context.logger.info("Background work: processing completed")
+}
+
+try await runtime.run()
+```
+
+This interface provides:
+- **Type-safe JSON input**: Automatic decoding of JSON events into Swift structs
+- **Streaming responses**: Full control over when and how to stream data back to clients  
+- **Background work support**: Ability to execute code after the response stream is finished
+- **Familiar API**: Uses the same closure-based pattern as regular Lambda handlers
+
+You can learn how to deploy and invoke this function in [the streaming codable example README file](Examples/StreamingFromEvent/README.md).
 
 ### Integration with AWS Services
 
@@ -280,7 +375,7 @@ try await runtime.run()
 
 ### Integration with Swift Service LifeCycle
 
-tbd + link to docc
+Support for [Swift Service Lifecycle](https://github.com/swift-server/swift-service-lifecycle) is currently being implemented. You can follow https://github.com/swift-server/swift-aws-lambda-runtime/issues/374 for more details and teh current status. Your contributions are welcome.
 
 ### Use Lambda Background Tasks
 
@@ -380,7 +475,7 @@ LOCAL_LAMBDA_SERVER_INVOCATION_ENDPOINT=/2015-03-31/functions/function/invocatio
 
 ## Deploying your Swift Lambda functions
 
-There is a full deployment guide available in [the documentation](https://swiftpackageindex.com/swift-server/swift-aws-lambda-runtime/main/documentation/awslambdaruntimecore/deployment).
+There is a full deployment guide available in [the documentation](https://swiftpackageindex.com/swift-server/swift-aws-lambda-runtime/main/documentation/awslambdaruntime/deployment).
 
 There are multiple ways to deploy your Swift code to AWS Lambda. The very first time, you'll probably use the AWS Console to create a new Lambda function and upload your code as a zip file. However, as you iterate on your code, you'll want to automate the deployment process.
 
@@ -422,9 +517,9 @@ Please refer to the full deployment guide available in [the documentation](https
 
 ## Swift AWS Lambda Runtime - Design Principles
 
-The [design document](Sources/AWSLambdaRuntimeCore/Documentation.docc/Proposals/0001-v2-api.md) details the v2 API proposal for the swift-aws-lambda-runtime library, which aims to enhance the developer experience for building serverless functions in Swift.
+The [design document](Sources/AWSLambdaRuntime/Documentation.docc/Proposals/0001-v2-api.md) details the v2 API proposal for the swift-aws-lambda-runtime library, which aims to enhance the developer experience for building serverless functions in Swift.
 
-The proposal has been reviewed and [incorporated feedback from the community](https://forums.swift.org/t/aws-lambda-v2-api-proposal/73819). The full v2 API design document is available [in this repository](Sources/AWSLambdaRuntimeCore/Documentation.docc/Proposals/0001-v2-api.md).
+The proposal has been reviewed and [incorporated feedback from the community](https://forums.swift.org/t/aws-lambda-v2-api-proposal/73819). The full v2 API design document is available [in this repository](Sources/AWSLambdaRuntime/Documentation.docc/Proposals/0001-v2-api.md).
 
 ### Key Design Principles
 
