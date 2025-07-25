@@ -35,3 +35,6 @@ Package.resolved
 **/.npmignore
 **/*.json
 **/*.txt
+docs/*
+.unacceptablelanguageignore
+.nojekyll

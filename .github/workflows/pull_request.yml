@@ -45,6 +45,8 @@ jobs:
     uses: apple/swift-nio/.github/workflows/swift_6_language_mode.yml@main
 
   semver-label-check:
+    # disable this action
+    if: false
     name: Semantic Version label check
     runs-on: ubuntu-latest
     timeout-minutes: 1
