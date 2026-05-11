@@ -19,6 +19,9 @@ fatal() { error "$@"; exit 1; }
 
 test -n "${EXAMPLE:-}" || fatal "EXAMPLE unset"
 
+# Use the local checkout of swift-aws-lambda-runtime instead of the published release
+.github/workflows/scripts/use-local-deps.sh "Examples/${EXAMPLE}/Package.swift"
+
 OUTPUT_DIR=.build/plugins/AWSLambdaPackager/outputs/AWSLambdaPackager
 OUTPUT_FILE=${OUTPUT_DIR}/MyLambda/bootstrap
 ZIP_FILE=${OUTPUT_DIR}/MyLambda/MyLambda.zip
