@@ -99,8 +99,6 @@ public struct LambdaContext: CustomDebugStringConvertible, Sendable {
         let cognitoIdentity: String?
         let clientContext: ClientContext?
         let logger: Logger
-        let logGroupName: String?
-        let logStreamName: String?
 
         init(
             requestID: String,
@@ -110,9 +108,7 @@ public struct LambdaContext: CustomDebugStringConvertible, Sendable {
             deadline: LambdaClock.Instant,
             cognitoIdentity: String?,
             clientContext: ClientContext?,
-            logger: Logger,
-            logGroupName: String?,
-            logStreamName: String?
+            logger: Logger
         ) {
             self.requestID = requestID
             self.traceID = traceID
@@ -122,8 +118,6 @@ public struct LambdaContext: CustomDebugStringConvertible, Sendable {
             self.cognitoIdentity = cognitoIdentity
             self.clientContext = clientContext
             self.logger = logger
-            self.logGroupName = logGroupName
-            self.logStreamName = logStreamName
         }
     }
 
@@ -175,7 +169,7 @@ public struct LambdaContext: CustomDebugStringConvertible, Sendable {
         *,
         deprecated,
         message:
-            "This method will be removed in a future major version update. Use init(requestID:traceID:tenantID:invokedFunctionARN:deadline:cognitoIdentity:clientContext:logger:logGroupName:logStreamName) instead."
+            "This method will be removed in a future major version update. Use init(requestID:traceID:tenantID:invokedFunctionARN:deadline:cognitoIdentity:clientContext:logger) instead."
     )
     public init(
         requestID: String,
@@ -205,9 +199,7 @@ public struct LambdaContext: CustomDebugStringConvertible, Sendable {
         deadline: LambdaClock.Instant,
         cognitoIdentity: String? = nil,
         clientContext: ClientContext? = nil,
-        logger: Logger,
-        logGroupName: String? = nil,
-        logStreamName: String? = nil
+        logger: Logger
     ) {
         self.storage = _Storage(
             requestID: requestID,
@@ -217,20 +209,8 @@ public struct LambdaContext: CustomDebugStringConvertible, Sendable {
             deadline: deadline,
             cognitoIdentity: cognitoIdentity,
             clientContext: clientContext,
-            logger: logger,
-            logGroupName: logGroupName,
-            logStreamName: logStreamName
+            logger: logger
         )
-    }
-
-    /// The name of the Amazon CloudWatch Logs group for the function.
-    public var logGroupName: String? {
-        self.storage.logGroupName
-    }
-
-    /// The name of the Amazon CloudWatch Logs stream for the current invocation of the function.
-    public var logStreamName: String? {
-        self.storage.logStreamName
     }
 
     public func getRemainingTime() -> Duration {
@@ -250,9 +230,7 @@ public struct LambdaContext: CustomDebugStringConvertible, Sendable {
         tenantID: String?,
         invokedFunctionARN: String,
         timeout: Duration,
-        logger: Logger,
-        logGroupName: String? = nil,
-        logStreamName: String? = nil
+        logger: Logger
     ) -> LambdaContext {
         LambdaContext(
             requestID: requestID,
@@ -260,9 +238,7 @@ public struct LambdaContext: CustomDebugStringConvertible, Sendable {
             tenantID: tenantID,
             invokedFunctionARN: invokedFunctionARN,
             deadline: LambdaClock().now.advanced(by: timeout),
-            logger: logger,
-            logGroupName: logGroupName,
-            logStreamName: logStreamName
+            logger: logger
         )
     }
 }
