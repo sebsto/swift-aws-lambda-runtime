@@ -53,6 +53,7 @@ public struct JSONLogHandler: LogHandler {
         self.traceID = traceID
     }
 
+    @available(*, deprecated, message: "Use log(event:) instead")
     public func log(
         level: Logger.Level,
         message: Logger.Message,
@@ -62,22 +63,38 @@ public struct JSONLogHandler: LogHandler {
         function: String,
         line: UInt
     ) {
+        self.log(
+            event: LogEvent(
+                level: level,
+                message: message,
+                metadata: metadata,
+                source: source as String?,
+                file: file,
+                function: function,
+                line: line
+            )
+        )
+    }
+
+    public func log(event: LogEvent) {
         // Merge metadata
         var allMetadata = self.metadata
-        if let metadata = metadata {
+        if let metadata = event.metadata {
             allMetadata.merge(metadata) { _, new in new }
         }
 
         // Create log entry struct
         let logEntry = LogEntry(
             timestamp: Date(),
-            level: Self.mapLogLevel(level),
-            message: message.description,
+            level: Self.mapLogLevel(event.level),
+            message: event.message.description,
+            source: event.source,
+            error: event.error.map { String(describing: $0) },
             requestId: self.requestID,
             traceId: self.traceID,
-            file: file,
-            function: function,
-            line: line,
+            file: event.file,
+            function: event.function,
+            line: event.line,
             metadata: allMetadata.isEmpty ? nil : allMetadata.mapValues { $0.description }
         )
 
@@ -175,6 +192,8 @@ public struct JSONLogHandler: LogHandler {
         let timestamp: Date
         let level: String
         let message: String
+        let source: String
+        let error: String?
         let requestId: String
         let traceId: String
         let file: String
