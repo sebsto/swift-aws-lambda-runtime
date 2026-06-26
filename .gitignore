@@ -12,6 +12,7 @@ Package.resolved
 .vscode
 .devcontainer
 .amazonq
-.kiro
 nodejs
 .ash
+.kiro/
+.claude/

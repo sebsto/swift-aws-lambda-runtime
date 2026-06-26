@@ -66,11 +66,11 @@ Once the struct is created and the `handle(...)` method is defined, the sample c
 To build & archive the package, type the following commands.
 
 ```bash
-swift package archive --allow-network-connections docker --base-docker-image swift:amazonlinux2023
+swift package --allow-network-connections docker lambda-build
 ```
 
 If there is no error, there is a ZIP file ready to deploy. 
-The ZIP file is located at `.build/plugins/AWSLambdaPackager/outputs/AWSLambdaPackager/StreamingNumbers/StreamingNumbers.zip`
+The ZIP file is located at `.build/plugins/AWSLambdaBuilder/outputs/AWSLambdaBuilder/StreamingNumbers/StreamingNumbers.zip`
 
 ## Test locally
 
@@ -108,7 +108,7 @@ Resources:
   StreamingNumbers:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: .build/plugins/AWSLambdaPackager/outputs/AWSLambdaPackager/StreamingNumbers/StreamingNumbers.zip
+      CodeUri: .build/plugins/AWSLambdaBuilder/outputs/AWSLambdaBuilder/StreamingNumbers/StreamingNumbers.zip
       Timeout: 60  # Must be bigger than the time it takes to stream the output
       Handler: swift.bootstrap
       Runtime: provided.al2023

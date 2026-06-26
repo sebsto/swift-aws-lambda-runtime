@@ -13,6 +13,14 @@
 //
 //===----------------------------------------------------------------------===//
 
+// This file holds the Swift < 6.4 implementation of the `archive` command, which
+// performs the docker build and ZIP packaging in-process. On Swift 6.4+, the
+// `archive` command is reimplemented in `Plugin@swift-6.4.swift` to delegate to the
+// AWSLambdaPluginHelper. The `#if swift(<6.4)` guard below ensures only one
+// `@main` definition is compiled on any given toolchain (see the note in
+// `Plugin@swift-6.4.swift` about why the file name alone is not sufficient).
+
+#if swift(<6.4)
 import Foundation
 import PackagePlugin
 
@@ -366,7 +374,7 @@ struct AWSLambdaPackager: CommandPlugin {
                                                        [--base-docker-image <docker_image_name>]
                                                        [--disable-docker-image-update]
                                                        [--container-cli <docker | container>]
-                                                      
+
 
             OPTIONS:
             --verbose                     Produce verbose output for debugging.
@@ -376,7 +384,7 @@ struct AWSLambdaPackager: CommandPlugin {
                                           (default is taken from Package.swift)
             --configuration <name>        The build configuration (debug or release)
                                           (default is release)
-            --swift-version               The swift version to use for building. 
+            --swift-version               The swift version to use for building.
                                           (default is latest)
                                           This parameter cannot be used when --base-docker-image  is specified.
             --base-docker-image <name>    The name of the base docker image to use for the build.
@@ -653,3 +661,4 @@ extension PackageManager.BuildResult {
         return executable
     }
 }
+#endif

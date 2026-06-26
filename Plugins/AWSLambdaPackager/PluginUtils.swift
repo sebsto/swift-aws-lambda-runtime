@@ -13,6 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#if swift(<6.4)
 import Dispatch
 import Foundation
 import PackagePlugin
@@ -168,3 +169,4 @@ struct Utils {
         }
     }
 }
+#endif
