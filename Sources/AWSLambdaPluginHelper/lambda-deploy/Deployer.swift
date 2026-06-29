@@ -305,8 +305,34 @@ struct Deployer {
             packageType: .zip
         )
 
+        // A just-created IAM role is not always assumable by Lambda immediately: IAM is eventually
+        // consistent, so CreateFunction can fail with InvalidParameterValueException ("The role
+        // defined for the function cannot be assumed by Lambda") until the role propagates.
+        //
+        // Role propagation is a fixed-time event (typically a few seconds), not an overloaded
+        // dependency, so we poll quickly with a low delay ceiling rather than letting the default
+        // exponential backoff grow coarse: that catches readiness within ~1s of it happening instead
+        // of overshooting into long late-stage waits. The high attempt count keeps a generous ceiling
+        // as a safety net.
         do {
-            let response = try await lambdaClient.createFunction(request)
+            let response = try await withRetry(
+                maxAttempts: 15,
+                initialDelay: .milliseconds(500),
+                maxDelay: .seconds(2),
+                isRetryable: { self.isRoleNotYetAssumable($0) },
+                onRetry: { attempt, _ in
+                    if verbose {
+                        print(
+                            "[verbose] IAM role not yet assumable by Lambda (attempt \(attempt)/15); retrying..."
+                        )
+                    } else {
+                        print("Waiting for the role (\(attempt)/15)...")
+                    }
+                },
+                operation: {
+                    try await lambdaClient.createFunction(request)
+                }
+            )
             if verbose {
                 print("[verbose] Lambda function '\(name)' created successfully")
                 if let arn = response.functionArn {
@@ -321,6 +347,22 @@ struct Deployer {
                 message: error.message ?? error.errorCode
             )
         }
+    }
+
+    /// Whether a CreateFunction error indicates the execution role has not yet propagated and is
+    /// therefore not yet assumable by Lambda — a transient, eventually-consistent IAM condition that
+    /// is worth retrying.
+    func isRoleNotYetAssumable(_ error: any Error) -> Bool {
+        guard let error = error as? LambdaErrorType else { return false }
+        return self.isRoleNotYetAssumable(errorCode: error.errorCode, message: error.message)
+    }
+
+    /// String-level predicate behind ``isRoleNotYetAssumable(_:)``, split out so it can be unit
+    /// tested without constructing a `LambdaErrorType` (whose error context is not publicly
+    /// constructible).
+    func isRoleNotYetAssumable(errorCode: String, message: String?) -> Bool {
+        errorCode == "InvalidParameterValueException"
+            && (message?.contains("cannot be assumed by Lambda") ?? false)
     }
 
     /// Updates an existing Lambda function's code.
@@ -1050,17 +1092,9 @@ struct Deployer {
             print("[verbose] Attached AWSLambdaBasicExecutionRole policy to '\(roleName)'")
         }
 
-        // Wait for role propagation — IAM is eventually consistent and the role
-        // may not be usable by Lambda immediately after creation.
-        if verbose {
-            print("[verbose] Waiting 10 seconds for IAM role propagation...")
-        }
-        try await Task.sleep(for: .seconds(10))
-
-        if verbose {
-            print("[verbose] IAM role '\(roleName)' is ready")
-        }
-
+        // No fixed propagation wait here. IAM is eventually consistent, so a freshly created role
+        // may not be assumable by Lambda for a short window; CreateFunction retries on that specific
+        // error (see `createFunction`), which is typically far faster than an unconditional sleep.
         return roleARN
     }
 
