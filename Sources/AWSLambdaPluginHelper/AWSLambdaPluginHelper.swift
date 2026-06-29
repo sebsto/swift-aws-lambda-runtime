@@ -24,6 +24,10 @@ struct AWSLambdaPluginHelper {
     }
 
     public static func main() async throws {
+        // Stream output line-by-line; SwiftPM connects the plugin's stdout to a pipe, which the C
+        // runtime would otherwise block-buffer until the process exits.
+        enableLineBufferedStdout()
+
         let args = CommandLine.arguments
         let helper = AWSLambdaPluginHelper()
 
