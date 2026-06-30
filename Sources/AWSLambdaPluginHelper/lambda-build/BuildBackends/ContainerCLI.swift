@@ -45,4 +45,39 @@ protocol ContainerCLI {
         env: [String: String]?,
         command: String
     ) -> [String]
+
+    /// The arguments to build an OCI image from a Dockerfile for a single target architecture.
+    ///
+    /// - Parameters:
+    ///   - dockerfile: Path to the Dockerfile to build.
+    ///   - contextDir: The build context directory (the directory containing the files the
+    ///     Dockerfile's `COPY`/`ADD` instructions reference).
+    ///   - tag: The image tag to apply (e.g. `swift-lambda/MyLambda:latest`).
+    ///   - architecture: The single CPU architecture to build for. AWS Lambda images are
+    ///     single-architecture, so this is always baked in explicitly rather than left to the
+    ///     daemon default.
+    func buildImageArguments(
+        dockerfile: String,
+        contextDir: String,
+        tag: String,
+        architecture: BuildArchitecture
+    ) -> [String]
+
+    /// The arguments to log in to a container registry, reading the password from stdin.
+    ///
+    /// The caller pipes the secret to the process's standard input (e.g. an ECR authorization
+    /// token), so the password never appears in the argument vector. For ECR the username is
+    /// always `AWS`.
+    ///
+    /// - Parameters:
+    ///   - registry: The registry host to authenticate against (e.g.
+    ///     `<account>.dkr.ecr.<region>.amazonaws.com`).
+    ///   - username: The registry username (`AWS` for ECR).
+    func loginArguments(registry: String, username: String) -> [String]
+
+    /// The arguments to re-tag a local image under a new reference (e.g. the ECR-qualified name).
+    func tagArguments(source: String, target: String) -> [String]
+
+    /// The arguments to push a tagged image to its registry.
+    func pushArguments(tag: String) -> [String]
 }

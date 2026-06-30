@@ -85,6 +85,70 @@ struct DockerCLIArgumentTests {
             ]
         )
     }
+
+    @available(LambdaSwift 2.0, *)
+    @Test("build image arguments use --platform for arm64")
+    func buildImageArgumentsArm64() {
+        let cli = DockerCLI()
+        let args = cli.buildImageArguments(
+            dockerfile: "/ctx/Dockerfile",
+            contextDir: "/ctx",
+            tag: "swift-lambda/MyLambda:latest",
+            architecture: .arm64
+        )
+        #expect(
+            args == [
+                "build",
+                "--platform", "linux/arm64",
+                "-f", "/ctx/Dockerfile",
+                "-t", "swift-lambda/MyLambda:latest",
+                "/ctx",
+            ]
+        )
+    }
+
+    @available(LambdaSwift 2.0, *)
+    @Test("build image arguments use --platform for x64")
+    func buildImageArgumentsX64() {
+        let cli = DockerCLI()
+        let args = cli.buildImageArguments(
+            dockerfile: "/ctx/Dockerfile",
+            contextDir: "/ctx",
+            tag: "t",
+            architecture: .x64
+        )
+        #expect(
+            args == [
+                "build",
+                "--platform", "linux/amd64",
+                "-f", "/ctx/Dockerfile",
+                "-t", "t",
+                "/ctx",
+            ]
+        )
+    }
+
+    @available(LambdaSwift 2.0, *)
+    @Test("login arguments read the password from stdin")
+    func loginArguments() {
+        let cli = DockerCLI()
+        #expect(
+            cli.loginArguments(registry: "123.dkr.ecr.eu-central-1.amazonaws.com", username: "AWS")
+                == ["login", "--username", "AWS", "--password-stdin", "123.dkr.ecr.eu-central-1.amazonaws.com"]
+        )
+    }
+
+    @available(LambdaSwift 2.0, *)
+    @Test("tag and push arguments")
+    func tagAndPushArguments() {
+        let cli = DockerCLI()
+        #expect(
+            cli.tagArguments(source: "swift-lambda/MyLambda:latest", target: "repo:latest") == [
+                "tag", "swift-lambda/MyLambda:latest", "repo:latest",
+            ]
+        )
+        #expect(cli.pushArguments(tag: "repo:latest") == ["push", "repo:latest"])
+    }
 }
 
 // MARK: - AppleContainerCLI argv
@@ -147,6 +211,73 @@ struct AppleContainerCLIArgumentTests {
                 "bash", "-cl", "cmd",
             ]
         )
+    }
+
+    @available(LambdaSwift 2.0, *)
+    @Test("build image arguments use --arch and an explicit context dir for arm64")
+    func buildImageArgumentsArm64() {
+        let cli = AppleContainerCLI()
+        let args = cli.buildImageArguments(
+            dockerfile: "/ctx/Dockerfile",
+            contextDir: "/ctx",
+            tag: "swift-lambda/MyLambda:latest",
+            architecture: .arm64
+        )
+        #expect(
+            args == [
+                "build",
+                "--arch", "arm64",
+                "-f", "/ctx/Dockerfile",
+                "-t", "swift-lambda/MyLambda:latest",
+                "/ctx",
+            ]
+        )
+    }
+
+    @available(LambdaSwift 2.0, *)
+    @Test("build image arguments use --arch for x64")
+    func buildImageArgumentsX64() {
+        let cli = AppleContainerCLI()
+        let args = cli.buildImageArguments(
+            dockerfile: "/ctx/Dockerfile",
+            contextDir: "/ctx",
+            tag: "t",
+            architecture: .x64
+        )
+        #expect(
+            args == [
+                "build",
+                "--arch", "amd64",
+                "-f", "/ctx/Dockerfile",
+                "-t", "t",
+                "/ctx",
+            ]
+        )
+    }
+
+    @available(LambdaSwift 2.0, *)
+    @Test("login uses the registry subcommand and reads the password from stdin")
+    func loginArguments() {
+        let cli = AppleContainerCLI()
+        #expect(
+            cli.loginArguments(registry: "123.dkr.ecr.eu-central-1.amazonaws.com", username: "AWS")
+                == [
+                    "registry", "login", "--username", "AWS", "--password-stdin",
+                    "123.dkr.ecr.eu-central-1.amazonaws.com",
+                ]
+        )
+    }
+
+    @available(LambdaSwift 2.0, *)
+    @Test("tag and push use the image subcommand")
+    func tagAndPushArguments() {
+        let cli = AppleContainerCLI()
+        #expect(
+            cli.tagArguments(source: "swift-lambda/MyLambda:latest", target: "repo:latest") == [
+                "image", "tag", "swift-lambda/MyLambda:latest", "repo:latest",
+            ]
+        )
+        #expect(cli.pushArguments(tag: "repo:latest") == ["image", "push", "repo:latest"])
     }
 }
 

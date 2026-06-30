@@ -35,9 +35,9 @@ struct ZipArchiveBackend: ArchiveBackend {
         products: [String: URL],
         outputDirectory: URL,
         verboseLogging: Bool
-    ) throws -> [String: URL] {
+    ) throws -> [String: Artifact] {
 
-        var archives = [String: URL]()
+        var archives = [String: Artifact]()
         for (product, artifactPath) in products {
             print("-------------------------------------------------------------------------")
             print("archiving \"\(product)\"")
@@ -117,7 +117,15 @@ struct ZipArchiveBackend: ArchiveBackend {
                 logLevel: verboseLogging ? .debug : .silent
             )
 
-            archives[product] = zipfilePath
+            // write the build manifest next to the zip so lambda-deploy has an explicit contract
+            // (package type + architecture) instead of re-deriving everything from the path.
+            try BuildManifest.zip(
+                product: product,
+                architecture: .host,
+                zipPath: zipfilePath.path()
+            ).write(into: workingDirectory)
+
+            archives[product] = .zip(zipfilePath)
         }
         return archives
     }

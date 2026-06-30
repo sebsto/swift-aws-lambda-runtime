@@ -39,11 +39,9 @@ struct ArchiveFormatTests {
     }
 
     @available(LambdaSwift 2.0, *)
-    @Test("oci is recognised but not yet supported")
-    func ociUnsupported() {
-        #expect(throws: BuilderErrors.self) {
-            _ = try ArchiveFormat.parse("oci")
-        }
+    @Test("oci parses and is case-insensitive", arguments: ["oci", "OCI", "Oci"])
+    func parsesOCI(value: String) throws {
+        #expect(try ArchiveFormat.parse(value) == .oci)
     }
 
     @available(LambdaSwift 2.0, *)
@@ -75,6 +73,88 @@ struct ArchiveBackendSelectionTests {
         let backend = try configuration.makeArchiveBackend()
         let zip = try #require(backend as? ZipArchiveBackend)
         #expect(zip.name == "zip")
+    }
+
+    @available(LambdaSwift 2.0, *)
+    @Test("oci selects the OCIArchiveBackend")
+    func ociSelectsOCIBackend() throws {
+        let configuration = try BuilderConfiguration(arguments: [
+            "--package-id", "test",
+            "--package-display-name", "Test",
+            "--package-directory", "/tmp/pkg",
+            "--cross-compile-tool-path", "/usr/local/bin/docker",
+            "--zip-tool-path", "/usr/bin/zip",
+            "--output-path", "/tmp",
+            "--products", "MyLambda",
+            "--configuration", "release",
+            "--archive-format", "oci",
+        ])
+        let backend = try configuration.makeArchiveBackend()
+        let oci = try #require(backend as? OCIArchiveBackend)
+        #expect(oci.name == "oci")
+        #expect(oci.cli is DockerCLI)
+        // Without --base-oci-image, the backend uses the default minimal AL2023 base.
+        #expect(oci.baseImage == OCIArchiveBackend.defaultBaseImage)
+    }
+
+    @available(LambdaSwift 2.0, *)
+    @Test("--base-oci-image overrides the OCI backend base image")
+    func ociWithCustomBaseImage() throws {
+        let configuration = try BuilderConfiguration(arguments: [
+            "--package-id", "test",
+            "--package-display-name", "Test",
+            "--package-directory", "/tmp/pkg",
+            "--cross-compile-tool-path", "/usr/local/bin/docker",
+            "--zip-tool-path", "/usr/bin/zip",
+            "--output-path", "/tmp",
+            "--products", "MyLambda",
+            "--configuration", "release",
+            "--archive-format", "oci",
+            "--base-oci-image", "public.ecr.aws/lambda/provided:al2023",
+        ])
+        #expect(configuration.baseOCIImage == "public.ecr.aws/lambda/provided:al2023")
+        let backend = try configuration.makeArchiveBackend()
+        let oci = try #require(backend as? OCIArchiveBackend)
+        #expect(oci.baseImage == "public.ecr.aws/lambda/provided:al2023")
+    }
+
+    @available(LambdaSwift 2.0, *)
+    @Test("--base-oci-image is rejected when the archive format is not oci")
+    func baseOCIImageRejectedForZip() {
+        #expect(throws: BuilderErrors.self) {
+            _ = try BuilderConfiguration(arguments: [
+                "--package-id", "test",
+                "--package-display-name", "Test",
+                "--package-directory", "/tmp/pkg",
+                "--cross-compile-tool-path", "/usr/local/bin/docker",
+                "--zip-tool-path", "/usr/bin/zip",
+                "--output-path", "/tmp",
+                "--products", "MyLambda",
+                "--configuration", "release",
+                "--archive-format", "zip",
+                "--base-oci-image", "public.ecr.aws/lambda/provided:al2023",
+            ])
+        }
+    }
+
+    @available(LambdaSwift 2.0, *)
+    @Test("oci with --cross-compile container selects the Apple container CLI")
+    func ociWithContainerCLI() throws {
+        let configuration = try BuilderConfiguration(arguments: [
+            "--package-id", "test",
+            "--package-display-name", "Test",
+            "--package-directory", "/tmp/pkg",
+            "--cross-compile-tool-path", "/usr/local/bin/container",
+            "--zip-tool-path", "/usr/bin/zip",
+            "--output-path", "/tmp",
+            "--products", "MyLambda",
+            "--configuration", "release",
+            "--archive-format", "oci",
+            "--cross-compile", "container",
+        ])
+        let backend = try configuration.makeArchiveBackend()
+        let oci = try #require(backend as? OCIArchiveBackend)
+        #expect(oci.cli is AppleContainerCLI)
     }
 }
 
@@ -110,12 +190,22 @@ struct ZipArchiveBackendTests {
             verboseLogging: false
         )
 
-        let zipURL = try #require(archives[product])
+        let artifact = try #require(archives[product])
+        guard case .zip(let zipURL) = artifact else {
+            Issue.record("expected a .zip artifact, got \(artifact)")
+            return
+        }
         #expect(zipURL.lastPathComponent == "\(product).zip")
         #expect(FileManager.default.fileExists(atPath: zipURL.path()))
 
         // The binary is relocated to "bootstrap" next to the zip, as the Lambda runtime expects.
         let bootstrap = outputDir.appending(path: product).appending(path: "bootstrap")
         #expect(FileManager.default.fileExists(atPath: bootstrap.path()))
+
+        // A build manifest is written alongside the zip for the deploy hand-off.
+        let manifest = try #require(try BuildManifest.read(from: outputDir.appending(path: product)))
+        #expect(manifest.packageType == .zip)
+        #expect(manifest.product == product)
+        #expect(manifest.zipPath == zipURL.path())
     }
 }

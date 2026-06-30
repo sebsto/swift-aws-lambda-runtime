@@ -64,8 +64,8 @@ struct Builder {
         print(
             "\(archives.count > 0 ? archives.count.description : "no") archive\(archives.count != 1 ? "s" : "") created"
         )
-        for (product, archivePath) in archives {
-            print("  * \(product) at \(archivePath.path())")
+        for (product, artifact) in archives {
+            print("  * \(product) at \(artifact)")
         }
     }
 
@@ -115,6 +115,7 @@ struct Builder {
                                                        [--disable-docker-image-update]
                                                        [--cross-compile <docker | container | swift-static-sdk | custom-sdk>]
                                                        [--archive-format <zip | oci>]
+                                                       [--base-oci-image <oci_image_name>]
                                                        [--no-strip]
 
 
@@ -143,7 +144,10 @@ struct Builder {
             --archive-format <format>     The packaging format for the build artifact.
                                           Values: zip, oci
                                           (default is zip)
-                                          Note: oci is not yet supported.
+                                          oci builds an OCI image (deploy support: see lambda-deploy).
+            --base-oci-image <name>       The base image for the OCI image (--archive-format oci).
+                                          (default: public.ecr.aws/amazonlinux/amazonlinux:2023-minimal)
+                                          Use a glibc-compatible Amazon Linux 2023 base.
             --no-strip                    Do not strip debug symbols from the binary.
             --help                        Show help information.
             """
@@ -164,6 +168,7 @@ struct BuilderConfiguration: CustomStringConvertible {
     public let disableDockerImageUpdate: Bool
     public let crossCompileMethod: CrossCompileMethod
     public let archiveFormat: ArchiveFormat
+    public let baseOCIImage: String
     public let noStrip: Bool
     public let explicitAL2Image: Bool
 
@@ -193,6 +198,7 @@ struct BuilderConfiguration: CustomStringConvertible {
         let crossCompileArgument = argumentExtractor.extractOption(named: "cross-compile")
         let containerCliArgument = argumentExtractor.extractOption(named: "container-cli")  // deprecated alias
         let archiveFormatArgument = argumentExtractor.extractOption(named: "archive-format")
+        let baseOCIImageArgument = argumentExtractor.extractOption(named: "base-oci-image")
         let noStripArgument = argumentExtractor.extractFlag(named: "no-strip") > 0
         let helpArgument = argumentExtractor.extractFlag(named: "help") > 0
 
@@ -274,6 +280,13 @@ struct BuilderConfiguration: CustomStringConvertible {
         let resolvedCrossCompile = crossCompileArgument.first ?? containerCliArgument.first
         self.crossCompileMethod = try CrossCompileMethod.parse(resolvedCrossCompile)
         self.archiveFormat = try ArchiveFormat.parse(archiveFormatArgument.first)
+
+        // --base-oci-image only applies to the OCI image build; reject it for other formats rather
+        // than silently ignoring it.
+        guard baseOCIImageArgument.isEmpty || self.archiveFormat == .oci else {
+            throw BuilderErrors.invalidArgument("--base-oci-image can only be used with --archive-format oci")
+        }
+        self.baseOCIImage = baseOCIImageArgument.first ?? OCIArchiveBackend.defaultBaseImage
         self.noStrip = noStripArgument
 
         // detect when user explicitly provides an AL2 (not AL2023) base image
@@ -299,15 +312,7 @@ struct BuilderConfiguration: CustomStringConvertible {
     /// everything a backend needs (the resolved tool path, base image, and image-update
     /// preference), so the factory lives here rather than on ``CrossCompileMethod``.
     func makeCrossCompileBackend() throws -> any BuildBackend {
-        let cli: any ContainerCLI
-        switch self.crossCompileMethod {
-        case .docker:
-            cli = DockerCLI()
-        case .container:
-            cli = AppleContainerCLI()
-        case .swiftStaticSdk, .customSdk:
-            throw BuilderErrors.unsupportedCrossCompileMethod(self.crossCompileMethod)
-        }
+        let cli = try self.makeContainerCLI()
         return ContainerBuildBackend(
             cli: cli,
             toolPath: self.crossCompileToolPath,
@@ -317,13 +322,35 @@ struct BuilderConfiguration: CustomStringConvertible {
         )
     }
 
+    /// Resolves the ``ContainerCLI`` argument flavor for the configured cross-compile method.
+    ///
+    /// Shared by the build backend and the OCI archive backend — both shell out through the same
+    /// container CLI (docker or Apple's `container`).
+    private func makeContainerCLI() throws -> any ContainerCLI {
+        switch self.crossCompileMethod {
+        case .docker:
+            return DockerCLI()
+        case .container:
+            return AppleContainerCLI()
+        case .swiftStaticSdk, .customSdk:
+            throw BuilderErrors.unsupportedCrossCompileMethod(self.crossCompileMethod)
+        }
+    }
+
     /// Creates the ``ArchiveBackend`` that packages the built binaries for the configured format.
     func makeArchiveBackend() throws -> any ArchiveBackend {
         switch self.archiveFormat {
         case .zip:
             return ZipArchiveBackend(zipToolPath: self.zipToolPath)
         case .oci:
-            throw BuilderErrors.unsupportedArchiveFormat(self.archiveFormat)
+            // An OCI image bakes in a single architecture. A user-facing --architecture flag and
+            // build-manifest plumbing are tracked under #683; until then the image targets the host.
+            return OCIArchiveBackend(
+                cli: try self.makeContainerCLI(),
+                toolPath: self.crossCompileToolPath,
+                architecture: .host,
+                baseImage: self.baseOCIImage
+            )
         }
     }
 
@@ -338,6 +365,7 @@ struct BuilderConfiguration: CustomStringConvertible {
           disableDockerImageUpdate: \(self.disableDockerImageUpdate)
           crossCompileMethod: \(self.crossCompileMethod)
           archiveFormat: \(self.archiveFormat)
+          baseOCIImage: \(self.baseOCIImage)
           zipToolPath: \(self.zipToolPath)
           packageID: \(self.packageID)
           packageDisplayName: \(self.packageDisplayName)
