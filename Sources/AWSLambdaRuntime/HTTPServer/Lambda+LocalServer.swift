@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 #if LocalServerSupport
-import Logging
+public import Logging
 import NIOCore
 import NIOHTTP1
 import NIOPosix

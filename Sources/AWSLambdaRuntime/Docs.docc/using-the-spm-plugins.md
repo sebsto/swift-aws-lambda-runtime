@@ -11,8 +11,6 @@ Scaffold, build, and deploy your Lambda function with the bundled SwiftPM comman
 
 ## Overview
 
-> Warning: The command plugins require **Swift 6.4 or later**. On older toolchains, `swift package lambda-init`, `lambda-build`, and `lambda-deploy` are not available, use the `archive` plugin instead. After installing [swiftly](https://www.swift.org/install/macos/), run `swiftly install 6.4.x-snapshot`.
-
 Swift AWS Lambda Runtime ships three SwiftPM command plugins that cover the full
 lifecycle of a Lambda function, from creating the project to deploying it on AWS:
 
@@ -155,7 +153,7 @@ fails with guidance if a matching SDK is not found. Install it once with the
 `swift sdk install` command, passing the SDK download URL and its checksum. Find
 the current URL and checksum on the
 [Static Linux SDK](https://www.swift.org/documentation/articles/static-linux-getting-started.html)
-page. For example, for Swift 6.3.3:
+page. For example, for Swift 6.4 :
 
 ```sh
 swift sdk install \
@@ -176,7 +174,8 @@ either host.
 On binary size: statically linking musl does not, in practice, produce a much
 larger binary than the container build. Both statically link the Swift standard
 library, which dominates the size, so the two land close to each other (in a
-trivial function, the static-SDK binary is actually slightly smaller). Stripping applies through `--no-strip` exactly as with the other methods.
+trivial function, the static-SDK binary is actually slightly smaller).
+Stripping applies through `--no-strip` exactly as with the other methods.
 
 ### Choosing the package format
 
@@ -268,8 +267,8 @@ invoke time). See [lambda-deploy](#lambda-deploy).
 
 ## lambda-deploy
 
-`lambda-deploy` deploys the ZIP archive produced by `lambda-build` to AWS. It
-manages the full IAM role lifecycle, automatically creating a role with the
+`lambda-deploy` deploys the ZIP or OCI archive produced by `lambda-build` to AWS.
+It manages the full IAM role lifecycle, automatically creating a role with the
 `AWSLambdaBasicExecutionRole` policy when you don't provide an existing one. It
 also stages large archives (over 50 MB) through S3.
 
@@ -287,9 +286,11 @@ swift package --allow-network-connections all:443 lambda-deploy
 On success, the plugin reports the function ARN and a ready-to-use
 `aws lambda invoke` command.
 
-To expose the function through a Function URL, use `--with-url`. The URL is
-protected with `AWS_IAM` authentication, restricted to authenticated principals
-in your AWS account:
+To expose the function through a Function URL, use `--with-url`. 
+To expose your function with an URL, your function's handler code must accept 
+`FunctionURLRequest` as input event and return a `FunctionURLResponse`.
+The URL is protected with `AWS_IAM` authentication, restricted to authenticated
+principals in your AWS account:
 
 ```sh
 swift package --allow-network-connections all:443 lambda-deploy --with-url
@@ -331,6 +332,3 @@ swift package --allow-network-connections docker lambda-build
 # 3. Deploy it to AWS
 swift package --allow-network-connections all:443 lambda-deploy
 ```
-
-> Note: The legacy `archive` command remains available as a deprecated alias for
-> `lambda-build`.

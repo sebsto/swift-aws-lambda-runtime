@@ -14,8 +14,8 @@
 //===----------------------------------------------------------------------===//
 
 import Dispatch
-import Logging
-import NIOCore
+public import Logging
+public import NIOCore
 import NIOPosix
 
 #if os(macOS)
@@ -32,49 +32,6 @@ import ucrt
 
 @available(LambdaSwift 2.0, *)
 public enum Lambda {
-    @available(
-        *,
-        deprecated,
-        message:
-            "This method will be removed in a future major version update. Use runLoop(runtimeClient:handler:loggingConfiguration:logger:isSingleConcurrencyMode:) instead."
-    )
-    @inlinable
-    package static func runLoop<RuntimeClient: LambdaRuntimeClientProtocol, Handler>(
-        runtimeClient: RuntimeClient,
-        handler: Handler,
-        logger: Logger
-    ) async throws where Handler: StreamingLambdaHandler {
-        try await self.runLoop(
-            runtimeClient: runtimeClient,
-            handler: handler,
-            loggingConfiguration: LoggingConfiguration(logger: logger),
-            logger: logger,
-            isSingleConcurrencyMode: true
-        )
-    }
-
-    @available(
-        *,
-        deprecated,
-        message:
-            "This method will be removed in a future major version update. Use runLoop(runtimeClient:handler:loggingConfiguration:logger:isSingleConcurrencyMode:) instead."
-    )
-    @inlinable
-    package static func runLoop<RuntimeClient: LambdaRuntimeClientProtocol, Handler>(
-        runtimeClient: RuntimeClient,
-        handler: Handler,
-        loggingConfiguration: LoggingConfiguration,
-        logger: Logger
-    ) async throws where Handler: StreamingLambdaHandler {
-        try await self.runLoop(
-            runtimeClient: runtimeClient,
-            handler: handler,
-            loggingConfiguration: loggingConfiguration,
-            logger: logger,
-            isSingleConcurrencyMode: true
-        )
-    }
-
     @inlinable
     package static func runLoop<RuntimeClient: LambdaRuntimeClientProtocol, Handler>(
         runtimeClient: RuntimeClient,
@@ -119,23 +76,34 @@ public enum Lambda {
                     metadata: metadata
                 )
 
+                let context = LambdaContext(
+                    requestID: invocation.metadata.requestID,
+                    traceID: invocation.metadata.traceID,
+                    tenantID: invocation.metadata.tenantID,
+                    invokedFunctionARN: invocation.metadata.invokedFunctionARN,
+                    deadline: LambdaClock.Instant(
+                        millisecondsSinceEpoch: invocation.metadata.deadlineInMillisSinceEpoch
+                    ),
+                    logger: requestLogger,
+                    logGroupName: logGroupName,
+                    logStreamName: logStreamName
+                )
+
                 do {
-                    try await handler.handle(
-                        invocation.event,
-                        responseWriter: writer,
-                        context: LambdaContext(
-                            requestID: invocation.metadata.requestID,
-                            traceID: invocation.metadata.traceID,
-                            tenantID: invocation.metadata.tenantID,
-                            invokedFunctionARN: invocation.metadata.invokedFunctionARN,
-                            deadline: LambdaClock.Instant(
-                                millisecondsSinceEpoch: invocation.metadata.deadlineInMillisSinceEpoch
-                            ),
-                            logger: requestLogger,
-                            logGroupName: logGroupName,
-                            logStreamName: logStreamName
+                    // Bind the per-invocation logger as the task-local `Logger.current` for the
+                    // duration of the handler call, so business logic (and any function it calls)
+                    // can read `Logger.current` and inherit the request's metadata without having
+                    // to thread `context.logger` through every signature. `context.logger` keeps
+                    // working unchanged for code that prefers the explicit form.
+                    handler = try await withLogger(requestLogger) { _ in
+                        var handler = handler
+                        try await handler.handle(
+                            invocation.event,
+                            responseWriter: writer,
+                            context: context
                         )
-                    )
+                        return handler
+                    }
                     requestLogger.trace("Handler finished processing invocation")
                 } catch {
                     requestLogger.trace("Handler failed processing invocation", metadata: ["Handler error": "\(error)"])

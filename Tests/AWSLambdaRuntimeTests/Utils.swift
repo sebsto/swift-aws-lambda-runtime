@@ -15,7 +15,7 @@
 
 import Logging
 
-@testable import AWSLambdaRuntime
+@testable public import AWSLambdaRuntime
 
 #if canImport(FoundationEssentials)
 import FoundationEssentials

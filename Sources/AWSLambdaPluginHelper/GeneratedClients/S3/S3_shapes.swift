@@ -17,9 +17,9 @@
 @_spi(SotoInternal) import SotoCore
 
 #if canImport(FoundationEssentials)
-import FoundationEssentials
+public import FoundationEssentials
 #else
-import Foundation
+public import Foundation
 #endif
 
 @available(LambdaSwift 2.0, *)
@@ -253,7 +253,7 @@ extension S3 {
             self.location = location
         }
 
-        public init(from decoder: Decoder) throws {
+        public init(from decoder: any Decoder) throws {
             let response = decoder.userInfo[.awsResponse]! as! ResponseDecodingContainer
             self.bucketArn = try response.decodeHeaderIfPresent(String.self, key: "x-amz-bucket-arn")
             self.location = try response.decodeHeaderIfPresent(String.self, key: "Location")
@@ -313,7 +313,7 @@ extension S3 {
             self.objectOwnership = objectOwnership
         }
 
-        public func encode(to encoder: Encoder) throws {
+        public func encode(to encoder: any Encoder) throws {
             let request = encoder.userInfo[.awsRequest]! as! RequestEncodingContainer
             var container = encoder.singleValueContainer()
             request.encodeHeader(self.acl, key: "x-amz-acl")
@@ -350,7 +350,7 @@ extension S3 {
             self.versionId = versionId
         }
 
-        public init(from decoder: Decoder) throws {
+        public init(from decoder: any Decoder) throws {
             let response = decoder.userInfo[.awsResponse]! as! ResponseDecodingContainer
             self.deleteMarker = try response.decodeHeaderIfPresent(Bool.self, key: "x-amz-delete-marker")
             self.requestCharged = try response.decodeHeaderIfPresent(RequestCharged.self, key: "x-amz-request-charged")
@@ -407,7 +407,7 @@ extension S3 {
             self.versionId = versionId
         }
 
-        public func encode(to encoder: Encoder) throws {
+        public func encode(to encoder: any Encoder) throws {
             let request = encoder.userInfo[.awsRequest]! as! RequestEncodingContainer
             _ = encoder.container(keyedBy: CodingKeys.self)
             request.encodePath(self.bucket, key: "Bucket")
@@ -456,7 +456,7 @@ extension S3 {
             self.bucketRegion = bucketRegion
         }
 
-        public init(from decoder: Decoder) throws {
+        public init(from decoder: any Decoder) throws {
             let response = decoder.userInfo[.awsResponse]! as! ResponseDecodingContainer
             self.accessPointAlias = try response.decodeHeaderIfPresent(Bool.self, key: "x-amz-access-point-alias")
             self.bucketArn = try response.decodeHeaderIfPresent(String.self, key: "x-amz-bucket-arn")
@@ -485,7 +485,7 @@ extension S3 {
             self.expectedBucketOwner = expectedBucketOwner
         }
 
-        public func encode(to encoder: Encoder) throws {
+        public func encode(to encoder: any Encoder) throws {
             let request = encoder.userInfo[.awsRequest]! as! RequestEncodingContainer
             _ = encoder.container(keyedBy: CodingKeys.self)
             request.encodePath(self.bucket, key: "Bucket")
@@ -587,7 +587,7 @@ extension S3 {
             self.versionId = versionId
         }
 
-        public init(from decoder: Decoder) throws {
+        public init(from decoder: any Decoder) throws {
             let response = decoder.userInfo[.awsResponse]! as! ResponseDecodingContainer
             self.bucketKeyEnabled = try response.decodeHeaderIfPresent(
                 Bool.self,
@@ -807,7 +807,7 @@ extension S3 {
             self.writeOffsetBytes = writeOffsetBytes
         }
 
-        public func encode(to encoder: Encoder) throws {
+        public func encode(to encoder: any Encoder) throws {
             let request = encoder.userInfo[.awsRequest]! as! RequestEncodingContainer
             var container = encoder.singleValueContainer()
             request.encodeHeader(self.acl, key: "x-amz-acl")

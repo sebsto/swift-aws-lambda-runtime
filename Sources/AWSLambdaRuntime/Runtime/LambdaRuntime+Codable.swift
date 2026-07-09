@@ -13,7 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import NIOCore
+public import NIOCore
 
 /// The protocol a decoder must conform to so that it can be used with ``LambdaCodableAdapter`` to decode incoming
 /// `ByteBuffer` events.

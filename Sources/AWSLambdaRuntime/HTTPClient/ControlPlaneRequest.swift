@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 import NIOCore
-import NIOHTTP1
+package import NIOHTTP1
 
 @available(LambdaSwift 2.0, *)
 enum ControlPlaneRequest: Hashable {

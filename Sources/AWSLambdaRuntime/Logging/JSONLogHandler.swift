@@ -13,7 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Logging
+public import Logging
 import Synchronization
 
 #if canImport(Darwin)
@@ -51,29 +51,6 @@ public struct JSONLogHandler: LogHandler {
         self.logLevel = logLevel
         self.requestID = requestID
         self.traceID = traceID
-    }
-
-    @available(*, deprecated, message: "Use log(event:) instead")
-    public func log(
-        level: Logger.Level,
-        message: Logger.Message,
-        metadata: Logger.Metadata?,
-        source: String,
-        file: String,
-        function: String,
-        line: UInt
-    ) {
-        self.log(
-            event: LogEvent(
-                level: level,
-                message: message,
-                metadata: metadata,
-                source: source as String?,
-                file: file,
-                function: function,
-                line: line
-            )
-        )
     }
 
     public func log(event: LogEvent) {

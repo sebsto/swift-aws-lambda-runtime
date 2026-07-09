@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 #if ServiceLifecycleSupport
-import ServiceLifecycle
+public import ServiceLifecycle
 
 @available(LambdaSwift 2.0, *)
 extension LambdaRuntime: Service {

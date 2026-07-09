@@ -13,7 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Logging
+public import Logging
 import NIOCore
 
 // MARK: - Client Context
@@ -171,32 +171,6 @@ public struct LambdaContext: CustomDebugStringConvertible, Sendable {
         self.storage.logger
     }
 
-    @available(
-        *,
-        deprecated,
-        message:
-            "This method will be removed in a future major version update. Use init(requestID:traceID:tenantID:invokedFunctionARN:deadline:cognitoIdentity:clientContext:logger:logGroupName:logStreamName) instead."
-    )
-    public init(
-        requestID: String,
-        traceID: String,
-        invokedFunctionARN: String,
-        deadline: LambdaClock.Instant,
-        cognitoIdentity: String? = nil,
-        clientContext: ClientContext? = nil,
-        logger: Logger
-    ) {
-        self.init(
-            requestID: requestID,
-            traceID: traceID,
-            tenantID: nil,
-            invokedFunctionARN: invokedFunctionARN,
-            deadline: deadline,
-            cognitoIdentity: cognitoIdentity,
-            clientContext: clientContext,
-            logger: logger
-        )
-    }
     public init(
         requestID: String,
         traceID: String,
@@ -217,6 +191,65 @@ public struct LambdaContext: CustomDebugStringConvertible, Sendable {
             deadline: deadline,
             cognitoIdentity: cognitoIdentity,
             clientContext: clientContext,
+            logger: logger,
+            logGroupName: logGroupName ?? "",
+            logStreamName: logStreamName ?? ""
+        )
+    }
+
+    /// Create a `LambdaContext` using the task-local `Logger.current` as its logger.
+    ///
+    /// The logger bound by the nearest enclosing `withLogger` scope is captured for this
+    /// context. When constructed inside the runtime's per-invocation scope, this is the
+    /// request logger carrying the `requestID` / `traceID` metadata.
+    public init(
+        requestID: String,
+        traceID: String,
+        tenantID: String?,
+        invokedFunctionARN: String,
+        deadline: LambdaClock.Instant,
+        cognitoIdentity: String? = nil,
+        clientContext: ClientContext? = nil,
+        logGroupName: String? = nil,
+        logStreamName: String? = nil
+    ) {
+        self.storage = _Storage(
+            requestID: requestID,
+            traceID: traceID,
+            tenantID: tenantID,
+            invokedFunctionARN: invokedFunctionARN,
+            deadline: deadline,
+            cognitoIdentity: cognitoIdentity,
+            clientContext: clientContext,
+            logger: Logger.current,
+            logGroupName: logGroupName ?? "",
+            logStreamName: logStreamName ?? ""
+        )
+    }
+
+    /// Create a `LambdaContext` with an explicit logger.
+    ///
+    /// Omits `cognitoIdentity` / `clientContext` (the runtime does not set them)
+    /// `@usableFromInline` so the `@inlinable` `Lambda.runLoop` can call it.
+    @usableFromInline
+    init(
+        requestID: String,
+        traceID: String,
+        tenantID: String?,
+        invokedFunctionARN: String,
+        deadline: LambdaClock.Instant,
+        logger: Logger,
+        logGroupName: String? = nil,
+        logStreamName: String? = nil
+    ) {
+        self.storage = _Storage(
+            requestID: requestID,
+            traceID: traceID,
+            tenantID: tenantID,
+            invokedFunctionARN: invokedFunctionARN,
+            deadline: deadline,
+            cognitoIdentity: nil,
+            clientContext: nil,
             logger: logger,
             logGroupName: logGroupName ?? "",
             logStreamName: logStreamName ?? ""

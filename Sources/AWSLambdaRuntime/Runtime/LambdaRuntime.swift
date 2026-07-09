@@ -13,8 +13,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Logging
-import NIOCore
+public import Logging
+public import NIOCore
 import Synchronization
 
 // This is our guardian to ensure only one LambdaRuntime is running at the time
@@ -48,18 +48,18 @@ public final class LambdaRuntime<Handler>: Sendable where Handler: StreamingLamb
     @usableFromInline
     let loggingConfiguration: LoggingConfiguration
     @usableFromInline
-    let eventLoop: EventLoop
+    let eventLoop: any EventLoop
 
     public init(
         handler: sending Handler,
-        eventLoop: EventLoop = Lambda.defaultEventLoop,
-        logger: Logger = Logger(label: "LambdaRuntime")
+        eventLoop: any EventLoop = Lambda.defaultEventLoop,
+        logger: Logger = Logger.current
     ) {
         self.handlerStorage = SendingStorage(handler)
         self.eventLoop = eventLoop
 
         // Initialize logging configuration
-        self.loggingConfiguration = LoggingConfiguration(logger: logger)
+        self.loggingConfiguration = LoggingConfiguration(baseLogger: logger)
 
         // by setting the log level here, we understand it can not be changed dynamically at runtime
         // developers have to wait for AWS Lambda to dispose and recreate a runtime environment to pickup a change
@@ -125,7 +125,7 @@ public final class LambdaRuntime<Handler>: Sendable where Handler: StreamingLamb
     internal static func startRuntimeInterfaceClient(
         endpoint: String,
         handler: Handler,
-        eventLoop: EventLoop,
+        eventLoop: any EventLoop,
         loggingConfiguration: LoggingConfiguration,
         logger: Logger,
         isSingleConcurrencyMode: Bool
@@ -167,7 +167,7 @@ public final class LambdaRuntime<Handler>: Sendable where Handler: StreamingLamb
 
     internal static func startLocalServer(
         handler: sending Handler,
-        eventLoop: EventLoop,
+        eventLoop: any EventLoop,
         loggingConfiguration: LoggingConfiguration,
         logger: Logger
     ) async throws {

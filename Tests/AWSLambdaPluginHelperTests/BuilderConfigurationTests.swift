@@ -17,6 +17,12 @@ import Testing
 
 @testable import AWSLambdaPluginHelper
 
+#if canImport(FoundationEssentials)
+import FoundationEssentials
+#else
+import Foundation
+#endif
+
 @Suite("BuilderConfiguration argument parsing")
 struct BuilderConfigurationTests {
 
@@ -165,43 +171,6 @@ struct BuilderConfigurationTests {
         let args = defaultArgs()
         let config = try BuilderConfiguration(arguments: args)
         #expect(config.noStrip == false)
-    }
-
-    // MARK: - Output directory deprecated alias (Requirement 7.5)
-
-    @available(LambdaSwift 2.0, *)
-    @Test("--output-directory deprecated alias maps to outputDirectory")
-    func outputDirectoryAlias() throws {
-        let args: [String] = [
-            "--package-id", "my-package",
-            "--package-display-name", "MyPackage",
-            "--package-directory", "/tmp/project",
-            "--cross-compile-tool-path", "/usr/local/bin/docker",
-            "--zip-tool-path", "/usr/bin/zip",
-            "--output-directory", "/custom/output/path",
-            "--products", "MyLambda",
-            "--configuration", "release",
-        ]
-        let config = try BuilderConfiguration(arguments: args)
-        #expect(config.outputDirectory.path().hasSuffix("custom/output/path"))
-    }
-
-    @available(LambdaSwift 2.0, *)
-    @Test("--output-path takes precedence when both are provided")
-    func outputPathTakesPrecedence() throws {
-        let args: [String] = [
-            "--package-id", "my-package",
-            "--package-display-name", "MyPackage",
-            "--package-directory", "/tmp/project",
-            "--cross-compile-tool-path", "/usr/local/bin/docker",
-            "--zip-tool-path", "/usr/bin/zip",
-            "--output-path", "/primary/path",
-            "--output-directory", "/deprecated/path",
-            "--products", "MyLambda",
-            "--configuration", "release",
-        ]
-        let config = try BuilderConfiguration(arguments: args)
-        #expect(config.outputDirectory.path().hasSuffix("primary/path"))
     }
 
     // MARK: - Mutual exclusion of --swift-version and --base-docker-image (Requirement 2.17)

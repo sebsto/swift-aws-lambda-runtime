@@ -17,9 +17,9 @@
 @_spi(SotoInternal) import SotoCore
 
 #if canImport(FoundationEssentials)
-import FoundationEssentials
+public import FoundationEssentials
 #else
-import Foundation
+public import Foundation
 #endif
 
 @available(LambdaSwift 2.0, *)

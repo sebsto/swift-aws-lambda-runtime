@@ -47,7 +47,7 @@ internal final class LambdaChannelHandler<Delegate: LambdaChannelHandlerDelegate
     }
 
     private var state: State = .disconnected
-    private var lastError: Error?
+    private var lastError: (any Error)?
     private var reusableErrorBuffer: ByteBuffer?
     private let logger: Logger
     private let delegate: Delegate
@@ -98,7 +98,7 @@ internal final class LambdaChannelHandler<Delegate: LambdaChannelHandlerDelegate
         ]
     }
 
-    func nextInvocation(isolation: isolated (any Actor)? = #isolation) async throws -> Invocation {
+    func nextInvocation() async throws -> Invocation {
         switch self.state {
         case .connected(let context, .idle):
             return try await withCheckedThrowingContinuation {
@@ -120,7 +120,6 @@ internal final class LambdaChannelHandler<Delegate: LambdaChannelHandlerDelegate
     }
 
     func reportError(
-        isolation: isolated (any Actor)? = #isolation,
         _ error: any Error,
         requestID: String
     ) async throws {
@@ -162,7 +161,6 @@ internal final class LambdaChannelHandler<Delegate: LambdaChannelHandlerDelegate
     }
 
     func writeResponseBodyPart(
-        isolation: isolated (any Actor)? = #isolation,
         _ byteBuffer: ByteBuffer,
         requestID: String,
         hasCustomHeaders: Bool
@@ -204,7 +202,6 @@ internal final class LambdaChannelHandler<Delegate: LambdaChannelHandlerDelegate
     }
 
     func finishResponseRequest(
-        isolation: isolated (any Actor)? = #isolation,
         finalData: ByteBuffer?,
         requestID: String
     ) async throws {
@@ -237,7 +234,6 @@ internal final class LambdaChannelHandler<Delegate: LambdaChannelHandlerDelegate
     }
 
     private func sendResponseBodyPart(
-        isolation: isolated (any Actor)? = #isolation,
         _ byteBuffer: ByteBuffer,
         sendHeadWithRequestID: String?,
         context: ChannelHandlerContext,
@@ -269,7 +265,6 @@ internal final class LambdaChannelHandler<Delegate: LambdaChannelHandlerDelegate
     }
 
     private func sendResponseFinish(
-        isolation: isolated (any Actor)? = #isolation,
         _ byteBuffer: ByteBuffer?,
         sendHeadWithRequestID: String?,
         context: ChannelHandlerContext
@@ -452,7 +447,7 @@ extension LambdaChannelHandler: ChannelInboundHandler {
         }
     }
 
-    func errorCaught(context: ChannelHandlerContext, error: Error) {
+    func errorCaught(context: ChannelHandlerContext, error: any Error) {
         self.logger.trace(
             "Channel error caught",
             metadata: [

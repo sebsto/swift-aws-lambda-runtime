@@ -13,7 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import NIOCore
+public import NIOCore
 
 @usableFromInline
 package protocol LambdaRuntimeClientResponseStreamWriter: LambdaResponseStreamWriter {

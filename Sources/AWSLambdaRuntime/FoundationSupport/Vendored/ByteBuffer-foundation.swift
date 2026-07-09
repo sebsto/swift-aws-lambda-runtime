@@ -27,12 +27,12 @@
 //===----------------------------------------------------------------------===//
 
 #if FoundationJSONSupport
-import NIOCore
+public import NIOCore
 
 #if canImport(FoundationEssentials)
-import FoundationEssentials
+public import FoundationEssentials
 #else
-import Foundation
+public import Foundation
 #endif
 
 // This is NIO's `NIOFoundationCompat` module which at the moment only adds `ByteBuffer` utility methods

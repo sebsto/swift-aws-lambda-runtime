@@ -27,12 +27,12 @@
 //===----------------------------------------------------------------------===//
 
 #if FoundationJSONSupport
-import NIOCore
+public import NIOCore
 
 #if canImport(FoundationEssentials)
-import FoundationEssentials
+public import FoundationEssentials
 #else
-import Foundation
+public import Foundation
 #endif
 
 extension ByteBuffer {

@@ -15,8 +15,8 @@
 
 #if ManagedRuntimeSupport
 
-import Logging
-import NIOCore
+public import Logging
+public import NIOCore
 import Synchronization
 
 @available(LambdaSwift 2.0, *)
@@ -29,21 +29,21 @@ public final class LambdaManagedRuntime<Handler>: Sendable where Handler: Stream
     let loggingConfiguration: LoggingConfiguration
 
     @usableFromInline
-    let eventLoop: EventLoop
+    let eventLoop: any EventLoop
 
     @usableFromInline
     let handler: Handler
 
     public init(
         handler: Handler,
-        eventLoop: EventLoop = Lambda.defaultEventLoop,
-        logger: Logger = Logger(label: "LambdaManagedRuntime")
+        eventLoop: any EventLoop = Lambda.defaultEventLoop,
+        logger: Logger = Logger.current
     ) {
         self.handler = handler
         self.eventLoop = eventLoop
 
         // Initialize logging configuration
-        self.loggingConfiguration = LoggingConfiguration(logger: logger)
+        self.loggingConfiguration = LoggingConfiguration(baseLogger: logger)
 
         // by setting the log level here, we understand it can not be changed dynamically at runtime
         // developers have to wait for AWS Lambda to dispose and recreate a runtime environment to pickup a change

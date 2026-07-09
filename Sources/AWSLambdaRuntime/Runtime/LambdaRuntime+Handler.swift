@@ -13,8 +13,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Logging
-import NIOCore
+public import Logging
+public import NIOCore
 
 @available(LambdaSwift 2.0, *)
 extension LambdaRuntime {
@@ -23,8 +23,8 @@ extension LambdaRuntime {
     ///   - logger: The logger to use for the runtime. Defaults to a logger with label "LambdaRuntime".
     ///   - body: The handler in the form of a closure.
     public convenience init(
-        logger: Logger = Logger(label: "LambdaRuntime"),
-        body: @Sendable @escaping (ByteBuffer, LambdaResponseStreamWriter, LambdaContext) async throws -> Void
+        logger: Logger = Logger.current,
+        body: @Sendable @escaping (ByteBuffer, any LambdaResponseStreamWriter, LambdaContext) async throws -> Void
 
     ) where Handler == StreamingClosureHandler {
         self.init(handler: StreamingClosureHandler(body: body), logger: logger)
@@ -44,7 +44,7 @@ extension LambdaRuntime {
     >(
         encoder: sending Encoder,
         decoder: sending Decoder,
-        logger: Logger = Logger(label: "LambdaRuntime"),
+        logger: Logger = Logger.current,
         body: sending @escaping (Event, LambdaContext) async throws -> Output
     )
     where
@@ -74,7 +74,7 @@ extension LambdaRuntime {
     ///   - body: The handler in the form of a closure.
     public convenience init<Event: Decodable, Decoder: LambdaEventDecoder>(
         decoder: sending Decoder,
-        logger: Logger = Logger(label: "LambdaRuntime"),
+        logger: Logger = Logger.current,
         body: sending @escaping (Event, LambdaContext) async throws -> Void
     )
     where

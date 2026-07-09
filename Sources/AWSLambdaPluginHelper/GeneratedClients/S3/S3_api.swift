@@ -17,9 +17,9 @@
 @_exported import SotoCore
 
 #if canImport(FoundationEssentials)
-import FoundationEssentials
+public import FoundationEssentials
 #else
-import Foundation
+public import Foundation
 #endif
 
 /// Service object for interacting with AWS S3 service.

@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 import NIOPosix
-import Synchronization
+public import Synchronization
 
 enum Consts {
     static let apiPrefix = "/2018-06-01"

@@ -13,8 +13,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Logging
-import NIOCore
+public import Logging
+public import NIOCore
 import NIOHTTP1
 import NIOPosix
 
@@ -72,7 +72,7 @@ final actor LambdaRuntimeClient: LambdaRuntimeClientProtocol {
     private enum ConnectionState {
         case disconnected
         case connecting([ConnectionContinuation])
-        case connected(Channel, LambdaChannelHandler<LambdaRuntimeClient>)
+        case connected(any Channel, LambdaChannelHandler<LambdaRuntimeClient>)
     }
 
     enum LambdaState {
@@ -158,6 +158,11 @@ final actor LambdaRuntimeClient: LambdaRuntimeClientProtocol {
             strippedOperation(self)
         }
     }
+    // private nonisolated func assumeIsolatedOnEventLoop(
+    //     _ operation: (isolated LambdaRuntimeClient) -> Void
+    // ) {
+    //     self.assumeIsolated(operation)
+    // }
 
     @usableFromInline
     func close() async {
