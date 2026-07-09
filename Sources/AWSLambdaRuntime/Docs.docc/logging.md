@@ -1,5 +1,12 @@
 # Logging
 
+@Metadata {
+    @PageKind(article)
+    @PageColor(orange)
+    @SupportedLanguage(swift)
+    @PageImage(source: "lambda.png", alt: "AWS Lambda", purpose: icon)
+}
+
 Log from your Lambda function and from the helper code it calls.
 
 ## Overview
@@ -65,9 +72,3 @@ Task-local values propagate through structured concurrency (`async let`,
 `withTaskGroup`, child `Task {}`) but are **not** inherited by `Task.detached`.
 You must capture the logger explicitly across a detached boundary.
 
-## Topics
-
-### Related types
-
-- ``LambdaContext``
-- ``LoggingConfiguration``

@@ -32,11 +32,11 @@ Swift AWS Lambda Runtime was designed to make building Lambda functions in Swift
 
 - <doc:lambda-handlers>
 - <doc:testing-locally>
+- <doc:logging>
 
 ### Building and deploying
 
 - <doc:using-the-spm-plugins>
-- <doc:logging>
 - <doc:Deployment>
 
 ### Advanced
