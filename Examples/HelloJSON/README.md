@@ -21,32 +21,21 @@ The function return value will be encoded to a `HelloResponse` as your Lambda fu
 To build & archive the package, type the following commands.
 
 ```bash
-swift package archive --allow-network-connections docker
+swift package --allow-network-connections docker lambda-build
 ```
 
 If there is no error, there is a ZIP file ready to deploy. 
-The ZIP file is located at `.build/plugins/AWSLambdaPackager/outputs/AWSLambdaPackager/HelloJSON/HelloJSON.zip`
+The ZIP file is located at `.build/plugins/AWSLambdaBuilder/outputs/AWSLambdaBuilder/HelloJSON/HelloJSON.zip`
 
 ## Deploy
 
-Here is how to deploy using the `aws` command line.
+Here is how to deploy using the `lambda-deploy` plugin.
 
 ```bash
-# Replace with your AWS Account ID
-AWS_ACCOUNT_ID=012345678901
-
-aws lambda create-function \
---function-name HelloJSON \
---zip-file fileb://.build/plugins/AWSLambdaPackager/outputs/AWSLambdaPackager/HelloJSON/HelloJSON.zip \
---runtime provided.al2 \
---handler provided  \
---architectures arm64 \
---role arn:aws:iam::${AWS_ACCOUNT_ID}:role/lambda_basic_execution
+swift package --allow-network-connections all:443 lambda-deploy
 ```
 
-The `--architectures` flag is only required when you build the binary on an Apple Silicon machine (Apple M1 or more recent). It defaults to `x64`.
-
-Be sure to define the `AWS_ACCOUNT_ID` environment variable with your actual AWS account ID (for example: 012345678901).
+This creates the Lambda function, provisions the necessary IAM role, and uploads the deployment package.
 
 ## Invoke your Lambda function
 
@@ -76,5 +65,15 @@ This should output the following result.
 When done testing, you can delete the Lambda function with this command.
 
 ```bash
-aws lambda delete-function --function-name HelloJSON
+swift package --allow-network-connections all:443 lambda-deploy --delete
 ```
+
+## ⚠️ Security and Reliability Notice
+
+These are example applications for demonstration purposes. When deploying such infrastructure in production environments, we strongly encourage you to follow these best practices for improved security and resiliency:
+
+- Enable access logging on API Gateway ([documentation](https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-logging.html))
+- Ensure that AWS Lambda function is configured for function-level concurrent execution limit ([concurrency documentation](https://docs.aws.amazon.com/lambda/latest/dg/lambda-concurrency.html), [configuration guide](https://docs.aws.amazon.com/lambda/latest/dg/configuration-concurrency.html))
+- Check encryption settings for Lambda environment variables ([documentation](https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars-encryption.html))
+- Ensure that AWS Lambda function is configured for a Dead Letter Queue (DLQ) ([documentation](https://docs.aws.amazon.com/lambda/latest/dg/invocation-async-retain-records.html#invocation-dlq))
+- Ensure that AWS Lambda function is configured inside a VPC when it needs to access private resources ([documentation](https://docs.aws.amazon.com/lambda/latest/dg/configuration-vpc.html), [code example](https://github.com/awslabs/swift-aws-lambda-runtime/tree/main/Examples/ServiceLifecycle%2BPostgres))

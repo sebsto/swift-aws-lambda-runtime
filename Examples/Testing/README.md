@@ -160,8 +160,8 @@ You must pass an event to the Lambda function. You can use the `event.json` file
 sam local invoke -e Tests/event.json
 
 START RequestId: 3270171f-46d3-45f9-9bb6-3c2e5e9dc625 Version: $LATEST
-2024-12-21T16:49:31+0000 debug LambdaRuntime : [AWSLambdaRuntimeCore] LambdaRuntime initialized
-2024-12-21T16:49:31+0000 trace LambdaRuntime : lambda_ip=127.0.0.1 lambda_port=9001 [AWSLambdaRuntimeCore] Connection to control plane created
+2024-12-21T16:49:31+0000 debug LambdaRuntime : [AWSLambdaRuntime] LambdaRuntime initialized
+2024-12-21T16:49:31+0000 trace LambdaRuntime : lambda_ip=127.0.0.1 lambda_port=9001 [AWSLambdaRuntime] Connection to control plane created
 2024-12-21T16:49:31+0000 debug LambdaRuntime : [APIGatewayLambda] HTTP API Message received
 2024-12-21T16:49:31+0000 trace LambdaRuntime : [APIGatewayLambda] Event: APIGatewayV2Request(version: "2.0", routeKey: "$default", rawPath: "/", rawQueryString: "", cookies: [], headers: ["x-forwarded-proto": "https", "host": "a5q74es3k2.execute-api.us-east-1.amazonaws.com", "content-length": "0", "x-forwarded-for": "81.0.0.43", "accept": "*/*", "x-amzn-trace-id": "Root=1-66fb03de-07533930192eaf5f540db0cb", "x-forwarded-port": "443", "user-agent": "curl/8.7.1"], queryStringParameters: [:], pathParameters: [:], context: AWSLambdaEvents.APIGatewayV2Request.Context(accountId: "012345678901", apiId: "a5q74es3k2", domainName: "a5q74es3k2.execute-api.us-east-1.amazonaws.com", domainPrefix: "a5q74es3k2", stage: "$default", requestId: "e72KxgsRoAMEMSA=", http: AWSLambdaEvents.APIGatewayV2Request.Context.HTTP(method: GET, path: "/", protocol: "HTTP/1.1", sourceIp: "81.0.0.43", userAgent: "curl/8.7.1"), authorizer: nil, authentication: nil, time: "30/Sep/2024:20:02:38 +0000", timeEpoch: 1727726558220), stageVariables: [:], body: Optional("aGVsbG8gd29ybGQgb2YgU1dJRlQgTEFNQkRBIQ=="), isBase64Encoded: false)
 END RequestId: 5b71587a-39da-445e-855d-27a700e57efd
@@ -169,3 +169,13 @@ REPORT RequestId: 5b71587a-39da-445e-855d-27a700e57efd  Init Duration: 0.04 ms  
 
 {"body": "Hello world of swift lambda!", "statusCode": 200, "headers": {"content-type": "application/json"}}
 ```
+
+## ⚠️ Security and Reliability Notice
+
+These are example applications for demonstration purposes. When deploying such infrastructure in production environments, we strongly encourage you to follow these best practices for improved security and resiliency:
+
+- Enable access logging on API Gateway ([documentation](https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-logging.html))
+- Ensure that AWS Lambda function is configured for function-level concurrent execution limit ([concurrency documentation](https://docs.aws.amazon.com/lambda/latest/dg/lambda-concurrency.html), [configuration guide](https://docs.aws.amazon.com/lambda/latest/dg/configuration-concurrency.html))
+- Check encryption settings for Lambda environment variables ([documentation](https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars-encryption.html))
+- Ensure that AWS Lambda function is configured for a Dead Letter Queue (DLQ) ([documentation](https://docs.aws.amazon.com/lambda/latest/dg/invocation-async-retain-records.html#invocation-dlq))
+- Ensure that AWS Lambda function is configured inside a VPC when it needs to access private resources ([documentation](https://docs.aws.amazon.com/lambda/latest/dg/configuration-vpc.html), [code example](https://github.com/awslabs/swift-aws-lambda-runtime/tree/main/Examples/ServiceLifecycle%2BPostgres))

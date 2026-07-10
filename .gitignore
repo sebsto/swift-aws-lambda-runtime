@@ -1,5 +1,5 @@
 .DS_Store
-*.build
+*.build*
 *.index-build
 /.xcodeproj
 *.pem
@@ -10,5 +10,9 @@ xcuserdata
 Package.resolved
 .serverless
 .vscode
-Makefile
 .devcontainer
+.amazonq
+nodejs
+.ash
+.kiro/
+.claude/

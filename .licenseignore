@@ -3,6 +3,7 @@
 .swiftformatignore
 .spi.yml
 .swift-format
+Makefile
 .github/*
 *.md
 **/*.md
@@ -28,6 +29,7 @@ Package.resolved
 **/*.xcassets/*
 **/*.appiconset/*
 **/ResourcePackaging/hello.txt
+Sources/AWSLambdaPluginHelper/GeneratedClients/**
 .mailmap
 .swiftformat
 *.yaml
@@ -37,3 +39,6 @@ Package.resolved
 docs/*
 .unacceptablelanguageignore
 .nojekyll
+**/*.txt
+*.toml
+.kiro/*

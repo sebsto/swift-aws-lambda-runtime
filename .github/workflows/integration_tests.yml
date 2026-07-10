@@ -1,5 +1,8 @@
 name: IntegrationTests
 
+# As per Checkov CKV2_GHA_1
+permissions: read-all
+
 on:
   workflow_call:
     inputs:
@@ -19,6 +22,11 @@ on:
         type: boolean
         description: "Boolean to enable the compilation of examples. Defaults to true."
         default: true
+      archive_plugin_examples:
+        type: string
+        description: "The list of examples to run through the archive plugin test. Pass a String with a valid JSON array such as \"[ 'HelloWorld', 'APIGateway' ]\""
+        required: true
+        default: ""
       archive_plugin_enabled:
         type: boolean
         description: "Boolean to enable the test of the archive plugin. Defaults to true."
@@ -33,8 +41,8 @@ on:
         required: true
       matrix_linux_swift_container_image:
         type: string
-        description: "Container image for the matrix job. Defaults to matching latest Swift Ubuntu image."
-        default: "swift:amazonlinux2"
+        description: "Container image for the matrix test jobs. Defaults to Swift 6.4"
+        default: "swiftlang/swift:nightly-6.4.x-bookworm"
 
 ## We are cancelling previously triggered workflow runs
 concurrency:
@@ -43,7 +51,7 @@ concurrency:
 
 jobs:
   test-examples:
-    name: Test Examples/${{ matrix.examples }} on ${{ matrix.swift.swift_version }}
+    name: Test Examples/${{ matrix.examples }} on ${{ matrix.swift.image }}
     if: ${{ inputs.examples_enabled }}
     runs-on: ubuntu-latest
     strategy:
@@ -54,41 +62,28 @@ jobs:
         # We are using only one Swift version
         swift:
           - image: ${{ inputs.matrix_linux_swift_container_image }}
-            swift_version: "6.0.1-amazonlinux2"
     container:
       image: ${{ matrix.swift.image }}
     steps:
-      # GitHub checkout action has a dep on NodeJS 20 which is not running on Amazonlinux2
-      # workaround is to manually checkout the repository
-      # https://github.com/actions/checkout/issues/1487
-      - name: Manually Clone repository and checkout PR
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Cache SPM dependencies
+        uses: actions/cache@v5
+        with:
+          path: Examples/${{ matrix.examples }}/.build
+          key: spm-${{ runner.os }}-${{ matrix.examples }}-${{ hashFiles(format('Examples/{0}/Package.swift', matrix.examples)) }}
+          restore-keys: |
+            spm-${{ runner.os }}-${{ matrix.examples }}-
+
+      - name: Install dependencies
         run: |
-          # Clone the repository
-          git clone https://github.com/${{ github.repository }}
-          cd ${{ github.event.repository.name }}
-
-          # Fetch the pull request
-          git fetch origin +refs/pull/$PR_NUMBER/merge:
-
-          # Checkout the pull request
-          git checkout -qf FETCH_HEAD
-
-      # - name: Checkout repository
-      #   uses: actions/checkout@v4
-      #   with:
-      #       persist-credentials: false
-
-      - name: Mark the workspace as safe
-        working-directory: ${{ github.event.repository.name }}  # until we can use action/checkout@v4
-        # https://github.com/actions/checkout/issues/766
-        run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
+          apt-get -qq update && apt-get -qq -y install libssl-dev
 
       - name: Run matrix job
-        working-directory: ${{ github.event.repository.name }}  # until we can use action/checkout@v4
         env:
-          SWIFT_VERSION: ${{ matrix.swift.swift_version }}
           COMMAND: ${{ inputs.matrix_linux_command }}
           EXAMPLE: ${{ matrix.examples }}
         run: |
@@ -98,30 +93,54 @@ jobs:
     name: Test archive plugin
     if: ${{ inputs.archive_plugin_enabled }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        examples: ${{ fromJson(inputs.archive_plugin_examples) }}
+    # These must run on bare Ubuntu and not in a container: the plugin shells out to the host
+    # docker daemon, and we can't run docker inside a docker job container.
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
-      - name: Mark the workspace as safe
-        # https://github.com/actions/checkout/issues/766
-        run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
+
+      - name: Cache SPM dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            Examples/${{ matrix.examples }}/.build/checkouts
+            Examples/${{ matrix.examples }}/.build/repositories
+          key: spm-${{ runner.os }}-${{ matrix.examples }}-${{ hashFiles(format('Examples/{0}/Package.swift', matrix.examples)) }}
+          restore-keys: |
+            spm-${{ runner.os }}-${{ matrix.examples }}-
+
       - name: Test the archive plugin
+        env:
+          EXAMPLE: ${{ matrix.examples }}
         run: |
-          .github/workflows/scripts/check-archive-plugin.sh
+            .github/workflows/scripts/check-archive-plugin.sh
 
   check-foundation:
     name: No dependencies on Foundation
     if: ${{ inputs.check_foundation_enabled }}
     runs-on: ubuntu-latest
+    container:
+      image: ${{ inputs.matrix_linux_swift_container_image }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
-      - name: Mark the workspace as safe
-        # https://github.com/actions/checkout/issues/766
-        run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
+
+      - name: Cache SPM dependencies
+        uses: actions/cache@v5
+        with:
+          path: Examples/APIGatewayV2/.build
+          key: spm-foundation-${{ runner.os }}-${{ hashFiles('Examples/APIGatewayV2/Package.swift') }}
+          restore-keys: |
+            spm-foundation-${{ runner.os }}-
+
       - name: Check for Foundation or ICU dependency
         run: |
           .github/workflows/scripts/check-link-foundation.sh

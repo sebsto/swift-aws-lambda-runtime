@@ -2,7 +2,8 @@
 //
 // This source file is part of the SwiftAWSLambdaRuntime open source project
 //
-// Copyright (c) 2024 Apple Inc. and the SwiftAWSLambdaRuntime project authors
+// Copyright SwiftAWSLambdaRuntime project authors
+// Copyright (c) Amazon.com, Inc. or its affiliates.
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -23,11 +24,11 @@ export class LambdaApiStack extends cdk.Stack {
 
     // Create the Lambda function
     const lambdaFunction = new lambda.Function(this, 'SwiftLambdaFunction', {
-      runtime: lambda.Runtime.PROVIDED_AL2,
+      runtime: lambda.Runtime.PROVIDED_AL2023,
       architecture: lambda.Architecture.ARM_64,
       handler: 'bootstrap',
-      code: lambda.Code.fromAsset('../.build/plugins/AWSLambdaPackager/outputs/AWSLambdaPackager/APIGatewayLambda/APIGatewayLambda.zip'),
-      memorySize: 512,
+      code: lambda.Code.fromAsset('../.build/plugins/AWSLambdaBuilder/outputs/AWSLambdaBuilder/APIGatewayLambda/APIGatewayLambda.zip'),
+      memorySize: 128,
       timeout: cdk.Duration.seconds(30),
       environment: {
         LOG_LEVEL: 'debug',

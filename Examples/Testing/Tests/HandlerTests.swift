@@ -2,7 +2,8 @@
 //
 // This source file is part of the SwiftAWSLambdaRuntime open source project
 //
-// Copyright (c) 2024 Apple Inc. and the SwiftAWSLambdaRuntime project authors
+// Copyright SwiftAWSLambdaRuntime project authors
+// Copyright (c) Amazon.com, Inc. or its affiliates.
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -18,7 +19,7 @@ import Logging
 import Testing
 
 @testable import APIGatewayLambda  // to access the business code
-@testable import AWSLambdaRuntimeCore  // to access the LambdaContext
+@testable import AWSLambdaRuntime  // to access the LambdaContext
 
 #if canImport(FoundationEssentials)
 import FoundationEssentials

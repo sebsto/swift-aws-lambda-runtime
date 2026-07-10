@@ -6,9 +6,9 @@ This directory contains example code for Lambda functions.
 
 - When developing on macOS, be sure you use macOS 15 (Sequoia) or a more recent macOS version.
 
-- To build and archive your Lambda functions, you need to [install docker](https://docs.docker.com/desktop/install/mac-install/).
+- To build and archive your Lambda functions, you need to [install docker](https://docs.docker.com/desktop/install/mac-install/) or Apple [container](https://github.com/apple/container).
 
-- To deploy your Lambda functions and invoke them, you must have [an AWS account](https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-creating.html) and [install and configure the `aws` command line](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
+- To deploy your Lambda functions and invoke them, you must have [an AWS account](https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-creating.html) and [install and configure the `aws` command line](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) (run `aws configure` to set up your credentials).
 
 - Some examples are using [AWS SAM](https://aws.amazon.com/serverless/sam/). Install the [SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html) before deploying these examples.
 
@@ -16,9 +16,11 @@ This directory contains example code for Lambda functions.
 
 ## Examples 
 
-- **[API Gateway](APIGateway/README.md)**: an HTTPS REST API with [Amazon API Gateway](https://docs.aws.amazon.com/apigateway/latest/developerguide/welcome.html) and a Lambda function as backend (requires [AWS SAM](https://aws.amazon.com/serverless/sam/)).
+- **[API Gateway V1](APIGatewayV1/README.md)**: an REST API with [Amazon API Gateway](https://docs.aws.amazon.com/apigateway/latest/developerguide/welcome.html) and a Lambda function as backend (requires [AWS SAM](https://aws.amazon.com/serverless/sam/)).
 
-- **[API Gateway with Lambda Authorizer](APIGateway+LambdaAuthorizer/README.md)**: an HTTPS REST API with [Amazon API Gateway](https://docs.aws.amazon.com/apigateway/latest/developerguide/welcome.html) protected by a Lambda authorizer (requires [AWS SAM](https://aws.amazon.com/serverless/sam/)).
+- **[API Gateway V2](APIGatewayV2/README.md)**: an HTTPS API with [Amazon API Gateway](https://docs.aws.amazon.com/apigateway/latest/developerguide/welcome.html) and a Lambda function as backend (requires [AWS SAM](https://aws.amazon.com/serverless/sam/)).
+
+- **[API Gateway V2 with Lambda Authorizer](APIGatewayV2+LambdaAuthorizer/README.md)**: an HTTPS API with [Amazon API Gateway](https://docs.aws.amazon.com/apigateway/latest/developerguide/welcome.html) protected by a Lambda authorizer (requires [AWS SAM](https://aws.amazon.com/serverless/sam/)).
 
 - **[BackgroundTasks](BackgroundTasks/README.md)**: a Lambda function that continues to run background tasks after having sent the response (requires [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)).
 
@@ -28,11 +30,23 @@ This directory contains example code for Lambda functions.
 
 - **[HelloWorld](HelloWorld/README.md)**: a simple Lambda function (requires [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)).
 
+- **[Hummingbird](Hummingbird/README.md)**: a Lambda function using the Hummingbird web framework with API Gateway integration (requires [AWS SAM](https://aws.amazon.com/serverless/sam/)).
+
+- **[OCIImage](OCIImage/README.md)**: package and deploy a Lambda function as an OCI container image instead of a ZIP archive, pushed to Amazon ECR (requires Docker or [`container`](https://github.com/apple/container) and the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)).
+
+- **[ResourcesPackaging](ResourcesPackaging/README.md)**: a Lambda function that demonstrates how to bundle and read static resource files using Swift Package Manager's resource bundling feature (requires [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)).
+
+- **[S3EventNotifier](S3EventNotifier/README.md)**: a Lambda function that receives object-upload notifications from an [Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html) bucket.
+
 - **[S3_AWSSDK](S3_AWSSDK/README.md)**: a Lambda function that uses the [AWS SDK for Swift](https://docs.aws.amazon.com/sdk-for-swift/latest/developer-guide/getting-started.html) to invoke an [Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html) API (requires [AWS SAM](https://aws.amazon.com/serverless/sam/)).
 
 - **[S3_Soto](S3_Soto/README.md)**: a Lambda function that uses [Soto](https://github.com/soto-project/soto) to invoke an [Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html) API (requires [AWS SAM](https://aws.amazon.com/serverless/sam/)).
 
-- **[Streaming]**: create a Lambda function exposed as an URL. The Lambda function streams its response over time. (requires [AWS SAM](https://aws.amazon.com/serverless/sam/)).
+- **[Streaming with APIGateway](Streaming+APIGateway/README.md)**: create a Lambda function exposed by a REST API Gateway. The Lambda function streams its response over time. (requires [AWS SAM](https://aws.amazon.com/serverless/sam/)).
+
+- **[Streaming with Function Url](Streaming+FunctionUrl/README.md)**: create a Lambda function exposed as an URL. The Lambda function streams its response over time. (requires [AWS SAM](https://aws.amazon.com/serverless/sam/)).
+
+- **[Streaming+Codable](Streaming+Codable/README.md)**: a Lambda function that combines JSON input decoding with response streaming capabilities, demonstrating a streaming codable interface (requires [AWS SAM](https://aws.amazon.com/serverless/sam/) or the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)).
 
 - **[Testing](Testing/README.md)**: a test suite for Lambda functions.
 
@@ -65,3 +79,13 @@ To obtain these keys, you need an AWS account:
 4. **(Optional) Generate Temporary Security Credentials**: If you’re using temporary credentials (which are more secure for short-term access), use AWS Security Token Service (STS). You can call the `GetSessionToken` or `AssumeRole` API to generate temporary credentials, including a session token.
 
 With these in hand, you can use AWS SigV4 to securely sign your requests and interact with AWS services from your Swift app.
+
+## ⚠️ Security and Reliability Notice
+
+These are example applications for demonstration purposes. When deploying such infrastructure in production environments, we strongly encourage you to follow these best practices for improved security and resiliency:
+
+- Enable access logging on API Gateway ([documentation](https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-logging.html))
+- Ensure that AWS Lambda function is configured for function-level concurrent execution limit ([concurrency documentation](https://docs.aws.amazon.com/lambda/latest/dg/lambda-concurrency.html), [configuration guide](https://docs.aws.amazon.com/lambda/latest/dg/configuration-concurrency.html))
+- Check encryption settings for Lambda environment variables ([documentation](https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars-encryption.html))
+- Ensure that AWS Lambda function is configured for a Dead Letter Queue (DLQ) ([documentation](https://docs.aws.amazon.com/lambda/latest/dg/invocation-async-retain-records.html#invocation-dlq))
+- Ensure that AWS Lambda function is configured inside a VPC when it needs to access private resources ([documentation](https://docs.aws.amazon.com/lambda/latest/dg/configuration-vpc.html), [code example](https://github.com/awslabs/swift-aws-lambda-runtime/tree/main/Examples/ServiceLifecycle%2BPostgres))
